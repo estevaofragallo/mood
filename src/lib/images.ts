@@ -17,6 +17,15 @@ export async function processPhoto(file: Blob, maxSide = 1600): Promise<Blob> {
   )
 }
 
+/** Tenta as capas em ordem e guarda a primeira que baixar. */
+export async function fetchFirstCover(urls: string[]): Promise<Blob | null> {
+  for (const u of urls) {
+    const b = await fetchCover(u)
+    if (b) return b
+  }
+  return null
+}
+
 /** Baixa uma capa remota para guardar localmente. Retorna null se o servidor bloquear. */
 export async function fetchCover(url: string): Promise<Blob | null> {
   try {

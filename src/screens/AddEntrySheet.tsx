@@ -5,8 +5,8 @@ import { Rating } from '../components/Rating'
 import { Cover } from '../components/Cover'
 import { useToast } from '../components/Toast'
 import { useImage, useStore } from '../store'
-import { SEARCHABLE, searchCatalog, type CatalogHit } from '../lib/catalog'
-import { fetchCover, processPhoto } from '../lib/images'
+import { SOURCE_LABEL, enrichHit, searchCatalog, searchSource, type CatalogHit } from '../lib/catalog'
+import { fetchFirstCover, processPhoto } from '../lib/images'
 import { today } from '../lib/periods'
 import { ENTRY_LABEL, ENTRY_ORDER, type Entry, type EntryType } from '../lib/types'
 
@@ -59,17 +59,22 @@ export function AddEntrySheet({ onClose, defaultDate, editing }: Props) {
   const [hits, setHits] = useState<CatalogHit[]>([])
   const [searching, setSearching] = useState(false)
   const [searchErr, setSearchErr] = useState('')
+  const [doneFor, setDoneFor] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
+  const source = searchSource(type)
 
   useEffect(() => {
     setHits([])
     setSearchErr('')
-    if (!SEARCHABLE[type] || query.trim().length < 2 || editing) return
+    if (!searchSource(type) || query.trim().length < 2 || editing) return
     const ac = new AbortController()
     const t = setTimeout(() => {
       setSearching(true)
       searchCatalog(type, query.trim(), ac.signal)
-        .then(setHits)
+        .then((h) => {
+          setHits(h)
+          setDoneFor(query.trim())
+        })
         .catch((e) => !ac.signal.aborted && setSearchErr(e instanceof Error ? e.message : 'busca indisponível'))
         .finally(() => !ac.signal.aborted && setSearching(false))
     }, 380)
@@ -86,6 +91,10 @@ export function AddEntrySheet({ onClose, defaultDate, editing }: Props) {
     setYear(h.year ?? '')
     setHits([])
     setQuery('')
+    // completa direção/criação (TMDB) sem sobrescrever o que a pessoa já digitou
+    enrichHit(h).then((full) => {
+      if (full.subtitle && full.subtitle !== h.subtitle) setSubtitle((cur) => (cur === (h.subtitle ?? '') ? full.subtitle! : cur))
+    })
   }
 
   const switchType = (t: EntryType) => {
@@ -108,7 +117,8 @@ export function AddEntrySheet({ onClose, defaultDate, editing }: Props) {
         }
         toast(files.length === 1 ? 'foto guardada ✦' : `${files.length} fotos guardadas ✦`)
       } else {
-        const cover = coverFile ? await processPhoto(coverFile, 800) : hit?.coverUrl ? await fetchCover(hit.coverUrl) : null
+        const cover = coverFile ? await processPhoto(coverFile, 800) : hit?.coverUrls.length ? await fetchFirstCover(hit.coverUrls) : null
+        if (!coverFile && hit?.coverUrls.length && !cover) toast('não consegui baixar a capa — adicione pela edição')
         await addEntry(
           {
             type,
@@ -158,17 +168,18 @@ export function AddEntrySheet({ onClose, defaultDate, editing }: Props) {
           </>
         ) : type !== 'photo' ? (
           <>
-            {SEARCHABLE[type] && !editing && !hit && (
+            {source && !editing && !hit && (
               <div className="stack" style={{ gap: 8 }}>
                 <label className="search">
                   <Icon name="search" size={18} />
-                  <input className="input" placeholder={`buscar no ${SEARCHABLE[type]}`} value={query} onChange={(e) => setQuery(e.target.value)} />
+                  <input className="input" placeholder={`buscar no ${source}`} value={query} onChange={(e) => setQuery(e.target.value)} />
                 </label>
                 {searching && <div className="pending" style={{ padding: '4px 8px' }}><i /><i /><i /></div>}
                 {searchErr && <p className="note">{searchErr} — preencha à mão abaixo.</p>}
+                {!searching && !searchErr && doneFor === query.trim() && query.trim().length >= 2 && hits.length === 0 && <p className="note">nada encontrado — preencha à mão abaixo.</p>}
                 {hits.map((h) => (
                   <button key={h.key} className="hit" onClick={() => chooseHit(h)}>
-                    <div className="thumb">{h.coverUrl && <img src={h.coverUrl} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} />}</div>
+                    <div className="thumb">{h.coverUrls[0] && <img src={h.coverUrls[0]} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} />}</div>
                     <div style={{ minWidth: 0 }}>
                       <b style={{ display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{h.title}</b>
                       <small className="faint">{[h.subtitle, h.year].filter(Boolean).join(' · ')}</small>
@@ -177,12 +188,15 @@ export function AddEntrySheet({ onClose, defaultDate, editing }: Props) {
                 ))}
               </div>
             )}
+            {!source && (type === 'film' || type === 'series') && !editing && (
+              <p className="note" style={{ margin: 0 }}>para buscar pôsteres, conecte o TMDB em ajustes. por ora, preencha à mão e envie a capa abaixo.</p>
+            )}
             {hit && (
               <div className="hit on">
-                <div className="thumb">{hit.coverUrl && <img src={hit.coverUrl} alt="" />}</div>
+                <div className="thumb">{hit.coverUrls[0] && <img src={hit.coverUrls[0]} alt="" />}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <b>{hit.title}</b>
-                  <small className="faint" style={{ display: 'block' }}>{hit.source === 'openlibrary' ? 'Open Library' : 'MusicBrainz'}</small>
+                  <small className="faint" style={{ display: 'block' }}>{SOURCE_LABEL[hit.source]}</small>
                 </div>
                 <button className="icon-btn sm" onClick={() => setHit(null)} aria-label="desfazer seleção"><Icon name="close" size={16} /></button>
               </div>
@@ -219,7 +233,7 @@ export function AddEntrySheet({ onClose, defaultDate, editing }: Props) {
             <CoverPicker
               preview={coverFile ? coverPreview : undefined}
               existingId={coverFile === undefined ? editing?.imageId : undefined}
-              hitUrl={coverFile === undefined && !editing ? hit?.coverUrl : undefined}
+              hitUrl={coverFile === undefined && !editing ? hit?.coverUrls[0] : undefined}
               onPick={() => coverRef.current?.click()}
               onRemove={() => setCoverFile(null)}
             />

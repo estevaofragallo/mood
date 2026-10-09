@@ -68,6 +68,25 @@ export function Settings() {
         {s.model !== DEFAULT_MODEL && <button className="btn ghost sm" onClick={() => update({ model: DEFAULT_MODEL })}>voltar ao padrão</button>}
       </section>
 
+      <section className="section glass card stack" style={{ gap: 14 }}>
+        <div className="row between">
+          <b>catálogos e capas</b>
+          <span className="tag">{s.tmdbKey ? '✦ TMDB conectado' : 'TMDB desligado'}</span>
+        </div>
+        <p className="note" style={{ margin: 0 }}>
+          filmes e séries: TMDB, em português, com pôster e direção. livros: Google Books, com Open Library de reserva. álbuns: MusicBrainz. a busca envia só o texto digitado; as capas escolhidas são baixadas e guardadas no aparelho.
+        </p>
+        <label className="field">
+          <span>chave do TMDB (v3 ou token de leitura v4)</span>
+          <input className="input" type="password" autoComplete="off" placeholder="gratuita em themoviedb.org → ajustes → API" value={s.tmdbKey} onChange={(e) => update({ tmdbKey: e.target.value.trim() })} />
+        </label>
+        <label className="field">
+          <span>chave do Google Books (opcional)</span>
+          <input className="input" type="password" autoComplete="off" placeholder="sem chave, vale a cota anônima do Google" value={s.googleKey} onChange={(e) => update({ googleKey: e.target.value.trim() })} />
+        </label>
+        <p className="note" style={{ margin: 0 }}>This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+      </section>
+
       <section className="section glass card stack" style={{ gap: 10 }}>
         <b>privacidade</b>
         <ul className="muted" style={{ margin: 0, paddingLeft: 18, fontSize: 14, display: 'grid', gap: 6 }}>
