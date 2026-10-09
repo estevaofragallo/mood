@@ -195,8 +195,6 @@ function tile(g: CanvasRenderingContext2D, ctx: Ctx, e: Entry, x: number, y: num
     g.fillStyle = 'rgba(0,0,0,.25)'
     g.fillRect(x, y, size, size)
     g.fillStyle = '#fff'
-    g.font = `500 ${size * 0.07}px ${UI}`
-    g.fillText(ENTRY_LABEL[e.type].one.toUpperCase(), x + size * 0.08, y + size * 0.15)
     g.font = `italic ${size * 0.15}px ${SERIF}`
     wrap(g, e.title, size * 0.84, 3).forEach((l, i) => g.fillText(l, x + size * 0.08, y + size * 0.62 + i * size * 0.15))
   }
@@ -206,6 +204,20 @@ function tile(g: CanvasRenderingContext2D, ctx: Ctx, e: Entry, x: number, y: num
   g.strokeStyle = 'rgba(255,255,255,.16)'
   g.lineWidth = 2
   g.stroke()
+  g.restore()
+}
+
+function typeBadge(g: CanvasRenderingContext2D, e: Entry, x: number, y: number, scale = 1) {
+  g.save()
+  g.font = `600 ${18 * scale}px ${UI}`
+  const label = ENTRY_LABEL[e.type].one.toUpperCase()
+  const h = 34 * scale
+  rrect(g, x + 14 * scale, y + 14 * scale, g.measureText(label).width + 26 * scale, h, h / 2)
+  g.fillStyle = 'rgba(5,5,6,.6)'
+  g.fill()
+  g.fillStyle = INK
+  g.textBaseline = 'middle'
+  g.fillText(label, x + 27 * scale, y + 14 * scale + h / 2 + 1)
   g.restore()
 }
 
@@ -350,10 +362,14 @@ function story(ctx: Ctx): HTMLCanvasElement {
       const [cx, cy, w, r] = spots[i]
       polaroid(g, ctx.images.get(p.imageId!)!, cx, cy, w, r, p.note)
     })
-    if (media.length) media.slice(0, 4).forEach((e, i) => tile(g, ctx, e, P + i * 236, 1400, 212, 26))
+    if (media.length) media.slice(0, 4).forEach((e, i) => { tile(g, ctx, e, P + i * 236, 1400, 212, 26); typeBadge(g, e, P + i * 236, 1400, 0.8) })
   } else {
     const size = 280
-    media.slice(0, 6).forEach((e, i) => tile(g, ctx, e, P + (i % 3) * (size + 32), top + Math.floor(i / 3) * (size + 32), size, 32))
+    media.slice(0, 6).forEach((e, i) => {
+      const x = P + (i % 3) * (size + 32), y = top + Math.floor(i / 3) * (size + 32)
+      tile(g, ctx, e, x, y, size, 32)
+      typeBadge(g, e, x, y, 0.9)
+    })
   }
 
   statsRow(g, ctx, P, 1712, W - P * 2)
@@ -417,25 +433,39 @@ function carousel(ctx: Ctx): HTMLCanvasElement[] {
   if (media.length) {
     const [c, g] = canvas(W, H)
     background(g, W, H, reading.palette.slice(1).concat(reading.palette[0]))
-    chromeText(g, 'o que passou por aqui', P, 190, 74)
+    chromeText(g, 'o que passou por aqui', P, 170, 74)
+    // grade de capas: 2 colunas até 4 itens, 3 colunas acima disso
     const items = media.slice(0, 6)
-    const rowH = 166
+    const cols = items.length <= 4 ? 2 : 3
+    const gap = cols === 2 ? 56 : 40
+    const size = Math.min(cols === 2 ? 360 : 280, Math.floor((W - P * 2 - gap * (cols - 1)) / cols))
+    const left = Math.round((W - (cols * size + (cols - 1) * gap)) / 2)
+    const rows = Math.ceil(items.length / cols)
+    const textH = cols === 2 ? 150 : 140
+    const blockH = rows * (size + textH) - 40
+    const top = Math.max(240, Math.round(240 + (H - 240 - 60 - blockH) / 2))
     items.forEach((e, i) => {
-      const y = 270 + i * rowH
-      tile(g, ctx, e, P, y, 136, 20)
-      g.fillStyle = INK3
-      g.font = `600 20px ${UI}`
-      g.letterSpacing = '4px'
-      g.fillText(ENTRY_LABEL[e.type].one.toUpperCase(), P + 168, y + 30)
-      g.letterSpacing = '0px'
+      const x = left + (i % cols) * (size + gap)
+      const y = top + Math.floor(i / cols) * (size + textH)
+      tile(g, ctx, e, x, y, size, cols === 2 ? 30 : 24)
+      typeBadge(g, e, x, y, cols === 2 ? 1 : 0.85)
+      const ty = y + size + (cols === 2 ? 50 : 44)
       g.fillStyle = INK
-      g.font = `italic 46px ${SERIF}`
-      g.fillText(wrap(g, e.title, 560, 1)[0], P + 168, y + 78)
+      g.font = `italic ${cols === 2 ? 44 : 36}px ${SERIF}`
+      g.fillText(wrap(g, e.title, size, 1)[0], x, ty)
       g.fillStyle = INK2
-      g.font = `400 26px ${UI}`
-      g.fillText(wrap(g, [e.subtitle, e.year].filter(Boolean).join(' · ') || ' ', 560, 1)[0], P + 168, y + 116)
-      if (typeof e.rating === 'number') stars(g, W - P - 190, y + 64, 32, e.rating, reading.palette[0])
+      g.font = `400 ${cols === 2 ? 24 : 21}px ${UI}`
+      const sub = [e.subtitle, e.year].filter(Boolean).join(' · ')
+      if (sub) g.fillText(wrap(g, sub, size, 1)[0], x, ty + (cols === 2 ? 36 : 31))
+      if (typeof e.rating === 'number') stars(g, x, ty + (cols === 2 ? 76 : 66), cols === 2 ? 26 : 22, e.rating, reading.palette[0])
     })
+    if (media.length > items.length) {
+      g.fillStyle = INK3
+      g.font = `500 24px ${UI}`
+      g.textAlign = 'right'
+      g.fillText(`+ ${media.length - items.length} no período`, W - P, H - 60)
+      g.textAlign = 'left'
+    }
     finish(g, W, H)
     slides.push(c)
   }

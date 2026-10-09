@@ -8,7 +8,8 @@ interface Store {
   entries: Entry[]
   periods: Period[]
   addEntry: (e: Omit<Entry, 'id' | 'createdAt'>, image?: Blob | null) => Promise<Entry>
-  updateEntry: (e: Entry) => Promise<void>
+  /** image: undefined mantém a imagem atual, null remove, Blob substitui */
+  updateEntry: (e: Entry, image?: Blob | null) => Promise<void>
   deleteEntry: (id: string) => Promise<void>
   savePeriod: (p: Period) => Promise<void>
   deletePeriod: (id: string, withEntries: boolean) => Promise<void>
@@ -46,9 +47,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return entry
   }, [])
 
-  const updateEntry = useCallback(async (e: Entry) => {
-    await db.put('entries', e)
-    setEntries((list) => list.map((x) => (x.id === e.id ? e : x)).sort(byDateDesc))
+  const updateEntry = useCallback(async (e: Entry, image?: Blob | null) => {
+    let next = e
+    if (image !== undefined) {
+      if (e.imageId) {
+        await db.remove('blobs', e.imageId)
+        forgetImage(e.imageId)
+      }
+      next = { ...e, imageId: undefined }
+      if (image) {
+        const imageId = uid()
+        await db.putBlob(imageId, image)
+        next.imageId = imageId
+      }
+    }
+    await db.put('entries', next)
+    setEntries((list) => list.map((x) => (x.id === next.id ? next : x)).sort(byDateDesc))
   }, [])
 
   const removeEntries = useCallback(async (toRemove: Entry[]) => {

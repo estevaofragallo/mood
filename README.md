@@ -17,7 +17,7 @@ npm run build      # typecheck + build de produção em dist/
 - **Diário + janelas.** Cada registro (álbum, filme, série, livro, lugar, foto) tem uma data. Os períodos são janelas sobre o diário: tudo entre o início e o fim entra no recap. Por isso os períodos podem se sobrepor (um mês dentro de um trimestre, uma viagem dentro do ano), e um período criado depois do fato já sai preenchido.
 - **Periodicidades.** Sugeridas: 1 mês, 3 meses, 6 meses, 1 ano (fim calculado automaticamente). Personalizadas: semanal, viagem (com destino) e livre (início, fim e nome à escolha).
 - **Leitura de humor.** A IA sugere e você edita. Com uma chave da API da Anthropic (em *ajustes*), o Claude gera nome, palavras, paleta e resumo. Sem chave, ou se a chamada falhar, um motor local monta a leitura a partir dos tipos de registro, das notas e das cores extraídas das fotos. Em qualquer caso, nome, palavras, paleta e resumo são editáveis.
-- **Card.** Stories (1080×1920) e carrossel 4:5 (capa, mídia com notas, fotos, lugares e frases), renderizados em canvas no próprio aparelho. Compartilhar usa a folha nativa do sistema; se ela não estiver disponível, as imagens são baixadas.
+- **Card.** Stories (1080×1920) e carrossel 4:5 (capa, grade de capas das mídias com notas, fotos, lugares e frases), renderizados em canvas no próprio aparelho. Compartilhar usa a folha nativa do sistema; se ela não estiver disponível, as imagens são baixadas.
 - **Eras.** Fechar um recap congela a leitura e o guarda na linha do tempo.
 
 ## Privacidade (alinhada ao conceito)
@@ -57,7 +57,7 @@ src/
 ## Limitações conhecidas / próximos passos
 
 - **Chave da API no navegador.** Aceitável para protótipo pessoal. Para produto, mover a chamada para um backend (proxy) e tirar a chave do cliente.
-- **Filmes e séries** entram à mão. O próximo passo é integrar o TMDB (exige atribuição e acordo para uso comercial).
+- **Filmes e séries** entram à mão, com capa enviada pelo usuário (pôster, print ou foto). Qualquer mídia aceita capa manual, inclusive na edição. O próximo passo é integrar o TMDB (exige atribuição e acordo para uso comercial).
 - **Busca em catálogo** não foi testada neste ambiente de desenvolvimento, porque a rede do sandbox bloqueia Open Library e MusicBrainz. Se a busca falhar, o app avisa e o preenchimento manual continua disponível.
 - Sem service worker ainda (o app é instalável, mas não funciona offline no primeiro carregamento).
 - Fase 2 do conceito: importações (Spotify, Last.fm, Letterboxd, Goodreads), sincronização entre aparelhos e comparação com amigos.

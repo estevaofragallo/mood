@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Sheet } from '../components/Sheet'
 import { Icon, type IconName } from '../components/Icon'
 import { Rating } from '../components/Rating'
 import { Cover } from '../components/Cover'
 import { useToast } from '../components/Toast'
-import { useStore } from '../store'
+import { useImage, useStore } from '../store'
 import { SEARCHABLE, searchCatalog, type CatalogHit } from '../lib/catalog'
 import { fetchCover, processPhoto } from '../lib/images'
 import { today } from '../lib/periods'
@@ -47,6 +47,11 @@ export function AddEntrySheet({ onClose, defaultDate, editing }: Props) {
   const [date, setDate] = useState(editing?.date ?? defaultDate ?? today())
   const [hit, setHit] = useState<CatalogHit | null>(null)
   const [files, setFiles] = useState<File[]>([])
+  // capa enviada à mão: undefined = sem mudança, null = removida, File = nova
+  const [coverFile, setCoverFile] = useState<File | null | undefined>(undefined)
+  const coverRef = useRef<HTMLInputElement>(null)
+  const coverPreview = useMemo(() => (coverFile ? URL.createObjectURL(coverFile) : undefined), [coverFile])
+  useEffect(() => () => { if (coverPreview) URL.revokeObjectURL(coverPreview) }, [coverPreview])
   const [busy, setBusy] = useState(false)
 
   // busca em catálogo
@@ -93,7 +98,8 @@ export function AddEntrySheet({ onClose, defaultDate, editing }: Props) {
     setBusy(true)
     try {
       if (editing) {
-        await updateEntry({ ...editing, title: title.trim(), subtitle: subtitle.trim() || undefined, year: year.trim() || undefined, rating, note: note.trim() || undefined, date })
+        const image = coverFile === undefined ? undefined : coverFile ? await processPhoto(coverFile, 800) : null
+        await updateEntry({ ...editing, title: title.trim(), subtitle: subtitle.trim() || undefined, year: year.trim() || undefined, rating, note: note.trim() || undefined, date }, image)
         toast('registro atualizado')
       } else if (type === 'photo') {
         for (const f of files) {
@@ -102,7 +108,7 @@ export function AddEntrySheet({ onClose, defaultDate, editing }: Props) {
         }
         toast(files.length === 1 ? 'foto guardada ✦' : `${files.length} fotos guardadas ✦`)
       } else {
-        const cover = hit?.coverUrl ? await fetchCover(hit.coverUrl) : null
+        const cover = coverFile ? await processPhoto(coverFile, 800) : hit?.coverUrl ? await fetchCover(hit.coverUrl) : null
         await addEntry(
           {
             type,
@@ -208,6 +214,20 @@ export function AddEntrySheet({ onClose, defaultDate, editing }: Props) {
 
         {type !== 'photo' && (
           <div className="field">
+            <span>capa</span>
+            <input ref={coverRef} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setCoverFile(f); e.target.value = '' }} />
+            <CoverPicker
+              preview={coverFile ? coverPreview : undefined}
+              existingId={coverFile === undefined ? editing?.imageId : undefined}
+              hitUrl={coverFile === undefined && !editing ? hit?.coverUrl : undefined}
+              onPick={() => coverRef.current?.click()}
+              onRemove={() => setCoverFile(null)}
+            />
+          </div>
+        )}
+
+        {type !== 'photo' && (
+          <div className="field">
             <span>nota</span>
             <Rating value={rating} onChange={setRating} />
           </div>
@@ -240,5 +260,25 @@ export function AddEntrySheet({ onClose, defaultDate, editing }: Props) {
         )}
       </div>
     </Sheet>
+  )
+}
+
+function CoverPicker({ preview, existingId, hitUrl, onPick, onRemove }: { preview?: string; existingId?: string; hitUrl?: string; onPick: () => void; onRemove: () => void }) {
+  const existing = useImage(existingId)
+  const src = preview ?? existing ?? hitUrl
+  return (
+    <div className="row" style={{ gap: 14 }}>
+      <button type="button" className="cover-slot" onClick={onPick} aria-label={src ? 'trocar capa' : 'adicionar capa'}>
+        {src ? <img src={src} alt="" /> : <Icon name="photo" size={22} />}
+      </button>
+      <div className="stack" style={{ gap: 6, alignItems: 'flex-start' }}>
+        <button type="button" className="btn glassy sm" onClick={onPick}>{src ? 'trocar capa' : 'adicionar capa'}</button>
+        {src && !hitUrl ? (
+          <button type="button" className="btn ghost sm" style={{ paddingLeft: 4 }} onClick={onRemove}>remover</button>
+        ) : (
+          <span className="note">pôster, print ou foto da capa</span>
+        )}
+      </div>
+    </div>
   )
 }
