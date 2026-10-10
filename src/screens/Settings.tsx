@@ -11,8 +11,9 @@ const MODELS = [
   { id: 'claude-haiku-5-5', label: 'Haiku 5.5', hint: 'mais rápido e barato' },
 ]
 
-export function Settings() {
-  const { entries, periods, wipe } = useStore()
+export function Settings({ editProfile }: { editProfile: (at: 'book' | 'mode') => void }) {
+  const { entries, periods, wipe, profile, saveProfile } = useStore()
+  const [confirmBirth, setConfirmBirth] = useState(false)
   const toast = useToast()
   const [s, setS] = useState(loadSettings)
   const [confirm, setConfirm] = useState(false)
@@ -24,7 +25,7 @@ export function Settings() {
   }
 
   function exportJson() {
-    const data = JSON.stringify({ app: 'moody', version: 1, exportedAt: new Date().toISOString(), periods, entries }, null, 2)
+    const data = JSON.stringify({ app: 'moody', version: 1, exportedAt: new Date().toISOString(), profile, periods, entries }, null, 2)
     const a = document.createElement('a')
     a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }))
     a.download = 'moody-backup.json'
@@ -37,6 +38,32 @@ export function Settings() {
       <header className="topbar">
         <span className="title">ajustes</span>
       </header>
+
+      {profile && (
+        <section className="glass card stack" style={{ gap: 14, marginBottom: 'var(--s8)' }}>
+          <div className="row between">
+            <b>seu perfil</b>
+            <span className="tag"><span className="sparkle">✦</span> {profile.mode === 'astral' ? 'modo astral' : 'gosto e humor'}</span>
+          </div>
+          <p className="muted" style={{ margin: 0, fontSize: 14 }}>
+            {profile.favorites.length ? `${profile.favorites.length} favoritos: ${profile.favorites.map((f) => f.title).slice(0, 4).join(', ')}${profile.favorites.length > 4 ? '…' : ''}` : 'nenhum favorito ainda.'}
+          </p>
+          {profile.mode === 'astral' && profile.birth && (
+            <p className="dot muted" style={{ margin: 0, fontSize: 14 }}>
+              {profile.birth.date.split('-').reverse().join('.')}{profile.birth.time ? ` · ${profile.birth.time}` : ' · sem hora'}{profile.birth.place ? ` · ${profile.birth.place}` : ''}
+            </p>
+          )}
+          <button className="btn glassy block" onClick={() => editProfile('book')}><Icon name="edit" size={16} /> editar favoritos</button>
+          {profile.mode === 'astral' ? (
+            <>
+              <button className="btn glassy block" onClick={() => editProfile('mode')}>ajustar dados de nascimento</button>
+              <button className="btn danger block" onClick={() => setConfirmBirth(true)}>desligar modo astral</button>
+            </>
+          ) : (
+            <button className="btn glassy block" onClick={() => editProfile('mode')}>☾ ativar modo astral</button>
+          )}
+        </section>
+      )}
 
       <section className="glass card stack" style={{ gap: 14 }}>
         <div className="row between">
@@ -110,10 +137,19 @@ export function Settings() {
 
       <p className="note" style={{ textAlign: 'center', marginTop: 28 }}>moody · v0.1 · feito com ✦</p>
 
+      {confirmBirth && profile && (
+        <Sheet title="desligar modo astral?" onClose={() => setConfirmBirth(false)}>
+          <div className="stack">
+            <p className="muted" style={{ margin: 0 }}>data, hora e cidade de nascimento serão apagadas deste aparelho. seus favoritos e registros continuam.</p>
+            <button className="btn danger block" onClick={async () => { await saveProfile({ ...profile, mode: 'taste', birth: undefined }); setConfirmBirth(false); toast('modo astral desligado') }}>desligar e apagar</button>
+          </div>
+        </Sheet>
+      )}
+
       {confirm && (
         <Sheet title="apagar tudo?" onClose={() => setConfirm(false)}>
           <div className="stack">
-            <p className="muted" style={{ margin: 0 }}>períodos, registros, fotos e leituras serão apagados deste aparelho. não dá para desfazer.</p>
+            <p className="muted" style={{ margin: 0 }}>perfil, períodos, registros, fotos e leituras serão apagados deste aparelho. não dá para desfazer.</p>
             <button className="btn danger block" onClick={async () => { await wipe(); setConfirm(false); toast('tudo apagado') }}>apagar definitivamente</button>
           </div>
         </Sheet>

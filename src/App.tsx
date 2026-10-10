@@ -8,6 +8,7 @@ import { Eras } from './screens/Eras'
 import { Settings } from './screens/Settings'
 import { AddEntrySheet } from './screens/AddEntrySheet'
 import { NewPeriodSheet } from './screens/NewPeriodSheet'
+import { Onboarding } from './screens/Onboarding'
 import { inRange, today } from './lib/periods'
 import type { Entry, PeriodKind } from './lib/types'
 
@@ -15,7 +16,13 @@ type Route = { name: 'home' } | { name: 'eras' } | { name: 'settings' } | { name
 type Overlay = { kind: 'add'; date?: string } | { kind: 'edit'; entry: Entry } | { kind: 'period'; initial?: PeriodKind } | null
 
 export function App() {
-  const { ready, periods } = useStore()
+  const { ready, periods, profile } = useStore()
+  const [editProfile, setEditProfile] = useState<null | 'book' | 'mode'>(null)
+  // fica no onboarding até a pessoa sair pela tela final (o perfil é salvo um passo antes)
+  const [onboarding, setOnboarding] = useState(!profile)
+  useEffect(() => {
+    if (!profile) setOnboarding(true)
+  }, [profile])
   const [route, setRoute] = useState<Route>({ name: 'home' })
   const [history, setHistory] = useState<Route[]>([])
   const [overlay, setOverlay] = useState<Overlay>(null)
@@ -50,22 +57,47 @@ export function App() {
 
   if (!ready) return null
 
+  const atmosphere = (
+    <div className="atmosphere" aria-hidden>
+      <div className="orb a" />
+      <div className="orb b" />
+      <div className="orb c" />
+      <div className="scan" />
+      <div className="grain" />
+    </div>
+  )
+
+  // primeiro acesso, ou edição do perfil a partir de ajustes
+  if (onboarding || !profile || editProfile) {
+    return (
+      <>
+        {atmosphere}
+        <main className="app" style={{ paddingBottom: 48 }}>
+          <Onboarding
+            initial={editProfile ? profile : null}
+            startAt={editProfile ?? undefined}
+            onDone={() => {
+              setOnboarding(false)
+              setEditProfile(null)
+              tab({ name: 'home' })
+            }}
+            onCancel={() => setEditProfile(null)}
+          />
+        </main>
+      </>
+    )
+  }
+
   return (
     <>
-      <div className="atmosphere" aria-hidden>
-        <div className="orb a" />
-        <div className="orb b" />
-        <div className="orb c" />
-        <div className="scan" />
-        <div className="grain" />
-      </div>
+      {atmosphere}
 
       <main className="app" key={route.name + ('id' in route ? route.id : '')}>
         {route.name === 'home' && (
           <Home openPeriod={(id) => go({ name: 'period', id })} newPeriod={(initial) => setOverlay({ kind: 'period', initial })} editEntry={(entry) => setOverlay({ kind: 'edit', entry })} />
         )}
         {route.name === 'eras' && <Eras openPeriod={(id) => go({ name: 'period', id })} />}
-        {route.name === 'settings' && <Settings />}
+        {route.name === 'settings' && <Settings editProfile={(at) => setEditProfile(at)} />}
         {route.name === 'period' && period && (
           <PeriodScreen
             period={period}

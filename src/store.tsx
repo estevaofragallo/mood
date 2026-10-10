@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { db, uid } from './lib/db'
 import { inRange } from './lib/periods'
 import type { Entry, Period } from './lib/types'
+import { loadProfile, persistProfile, type Profile } from './lib/profile'
 
 interface Store {
   ready: boolean
@@ -15,6 +16,9 @@ interface Store {
   deletePeriod: (id: string, withEntries: boolean) => Promise<void>
   entriesOf: (p: Pick<Period, 'start' | 'end'>) => Entry[]
   wipe: () => Promise<void>
+  profile: Profile | null
+  /** salva o perfil e apaga do aparelho as capas de favoritos que saíram */
+  saveProfile: (p: Profile) => Promise<void>
 }
 
 const Ctx = createContext<Store | null>(null)
@@ -25,6 +29,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false)
   const [entries, setEntries] = useState<Entry[]>([])
   const [periods, setPeriods] = useState<Period[]>([])
+  const [profile, setProfile] = useState<Profile | null>(loadProfile)
 
   useEffect(() => {
     Promise.all([db.all<Entry>('entries'), db.all<Period>('periods')])
@@ -113,11 +118,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     imageCache.clear()
     setEntries([])
     setPeriods([])
+    persistProfile(null)
+    setProfile(null)
   }, [])
 
+  const saveProfile = useCallback(
+    async (p: Profile) => {
+      const keep = new Set(p.favorites.map((f) => f.imageId).filter(Boolean))
+      for (const f of profile?.favorites ?? []) {
+        if (f.imageId && !keep.has(f.imageId)) {
+          await db.remove('blobs', f.imageId)
+          forgetImage(f.imageId)
+        }
+      }
+      persistProfile(p)
+      setProfile(p)
+    },
+    [profile],
+  )
+
   const value = useMemo(
-    () => ({ ready, entries, periods, addEntry, updateEntry, deleteEntry, savePeriod, deletePeriod, entriesOf, wipe }),
-    [ready, entries, periods, addEntry, updateEntry, deleteEntry, savePeriod, deletePeriod, entriesOf, wipe],
+    () => ({ ready, entries, periods, addEntry, updateEntry, deleteEntry, savePeriod, deletePeriod, entriesOf, wipe, profile, saveProfile }),
+    [ready, entries, periods, addEntry, updateEntry, deleteEntry, savePeriod, deletePeriod, entriesOf, wipe, profile, saveProfile],
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
