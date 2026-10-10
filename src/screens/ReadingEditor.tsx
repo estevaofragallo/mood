@@ -24,7 +24,7 @@ export function ReadingEditor({ reading, onSave, onClose }: { reading: Reading; 
         <p className="note" style={{ margin: 0 }}>a leitura é uma sugestão. a palavra final é sua.</p>
         <label className="field">
           <span>nome da fase</span>
-          <input className="input serif" style={{ fontSize: 22 }} value={name} onChange={(e) => setName(e.target.value)} />
+          <input className="input serif" style={{ fontSize: 'calc(24px * var(--display-scale))' }} value={name} onChange={(e) => setName(e.target.value)} />
         </label>
         <label className="field">
           <span>palavras (separadas por vírgula, até 4)</span>

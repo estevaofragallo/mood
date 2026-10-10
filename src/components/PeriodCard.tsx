@@ -12,21 +12,20 @@ export function Swatches({ colors }: { colors: string[] }) {
   )
 }
 
-/** Arco de progresso em pontilhado, inspirado no card de meta do design system. */
-export function ProgressArc({ ratio }: { ratio: number }) {
-  const x = 6 + ratio * 288
+/** Barra de progresso em segmentos: um por dia até 31 dias; acima disso, agrupados. */
+export function SegBar({ total, elapsed }: { total: number; elapsed: number }) {
+  const n = Math.min(total, 31)
+  const done = Math.round((elapsed / total) * n)
   return (
-    <svg className="arc" viewBox="0 0 300 26" preserveAspectRatio="none" aria-hidden>
-      <line x1="6" y1="20" x2="294" y2="20" stroke="rgba(255,255,255,.28)" strokeDasharray="1 5" strokeLinecap="round" strokeWidth="1.5" />
-      <path d={`M6 20 Q ${(6 + x) / 2} ${ratio > 0.02 ? -8 : 20} ${x} 20`} stroke="rgba(255,255,255,.85)" fill="none" strokeWidth="1.4" />
-      <circle cx="6" cy="20" r="3.2" fill="#fff" />
-      <circle cx={x} cy="20" r="4" fill="var(--lime)" style={{ filter: 'drop-shadow(0 0 6px #d7ff5a)' }} />
-      <circle cx="294" cy="20" r="3.2" fill="none" stroke="rgba(255,255,255,.6)" />
-    </svg>
+    <div className="segbar" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={elapsed}>
+      {Array.from({ length: n }, (_, i) => (
+        <span key={i} className={i < done - 1 ? 'on' : i === done - 1 ? 'now' : ''} />
+      ))}
+    </div>
   )
 }
 
-const FALLBACK = ['#8c74ff', '#5fb8ff', '#ff7ec2']
+const FALLBACK = ['#2b5cff', '#0a1a4d', '#8fb0ff']
 
 export function PeriodCard({ period, count, onOpen }: { period: Period; count: number; onOpen: () => void }) {
   const pr = progress(period)
@@ -49,7 +48,7 @@ export function PeriodCard({ period, count, onOpen }: { period: Period; count: n
         {period.reading && <p className="muted" style={{ margin: '4px 0 0', fontSize: 13 }}>{period.title}</p>}
       </div>
       <div>
-        <ProgressArc ratio={pr.ratio} />
+        <SegBar total={pr.total} elapsed={pr.elapsed} />
         <div className="meta" style={{ marginTop: 10 }}>
           <div>
             <div className="big-dot">{String(count).padStart(2, '0')}</div>

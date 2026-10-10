@@ -2,11 +2,11 @@ import { useImage } from '../store'
 import { ENTRY_LABEL, type Entry } from '../lib/types'
 
 const GRADS = [
-  'linear-gradient(135deg,#8c74ff,#ff9ecf)',
-  'linear-gradient(135deg,#5fb8ff,#c9b6ff)',
-  'linear-gradient(135deg,#ff7ec2,#ffd3a8)',
-  'linear-gradient(135deg,#2f3a55,#9fd8ff)',
-  'linear-gradient(135deg,#6b5b95,#d7ff5a)',
+  'linear-gradient(160deg,#2b5cff,#050a1f)',
+  'linear-gradient(160deg,#00b2ff,#001b2e)',
+  'linear-gradient(160deg,#1a1a24,#3d6bff)',
+  'linear-gradient(160deg,#8fb0ff,#0b1440)',
+  'linear-gradient(160deg,#0f2a8a,#000000)',
 ]
 const gradFor = (s: string) => GRADS[Math.abs([...s].reduce((h, c) => h * 31 + c.charCodeAt(0), 7)) % GRADS.length]
 

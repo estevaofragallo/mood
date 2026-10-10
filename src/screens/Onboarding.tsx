@@ -115,8 +115,8 @@ export function Onboarding({ initial, startAt, onDone, onCancel }: Props) {
 
       {step === 'welcome' && (
         <div className="onb-welcome">
-          <div className="logo" style={{ fontSize: 76 }}>moody<sup>✦</sup></div>
-          <p className="serif" style={{ fontSize: 34, lineHeight: 1.08, margin: '28px 0 14px' }}>
+          <div className="logo" style={{ fontSize: 'calc(84px * var(--display-scale))' }}>moody<sup>✦</sup></div>
+          <p className="serif" style={{ fontSize: 'calc(38px * var(--display-scale))', margin: '28px 0 14px' }}>
             quem você foi, <span className="muted">fase a fase.</span>
           </p>
           <p className="muted" style={{ margin: '0 0 36px', maxWidth: 320 }}>

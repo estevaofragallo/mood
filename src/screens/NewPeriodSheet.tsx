@@ -93,7 +93,7 @@ export function NewPeriodSheet({ onClose, onCreated, initialKind = '1m' }: { onC
 
         <div className="glass card tight row between">
           <div>
-            <div className="serif" style={{ fontSize: 22 }}>{customTitle.trim().toLowerCase() || autoTitle}</div>
+            <div className="serif" style={{ fontSize: 'calc(24px * var(--display-scale))' }}>{customTitle.trim().toLowerCase() || autoTitle}</div>
             <div className="dot faint" style={{ fontSize: 13 }}>{formatRange(start, end)}</div>
           </div>
           <div style={{ textAlign: 'right' }}>

@@ -4,6 +4,7 @@ import { useToast } from '../components/Toast'
 import { Icon } from '../components/Icon'
 import { Sheet } from '../components/Sheet'
 import { DEFAULT_MODEL, loadSettings, saveSettings } from '../lib/settings'
+import { THEMES, THEME_ORDER, applyTheme, loadThemeId } from '../lib/theme'
 
 const MODELS = [
   { id: 'claude-opus-5-5', label: 'Opus 5.5', hint: 'leituras mais finas (padrão)' },
@@ -14,6 +15,7 @@ const MODELS = [
 export function Settings({ editProfile }: { editProfile: (at: 'book' | 'mode') => void }) {
   const { entries, periods, wipe, profile, saveProfile } = useStore()
   const [confirmBirth, setConfirmBirth] = useState(false)
+  const [themeId, setThemeId] = useState(loadThemeId)
   const toast = useToast()
   const [s, setS] = useState(loadSettings)
   const [confirm, setConfirm] = useState(false)
@@ -38,6 +40,28 @@ export function Settings({ editProfile }: { editProfile: (at: 'book' | 'mode') =
       <header className="topbar">
         <span className="title">ajustes</span>
       </header>
+
+      <section className="glass card stack" style={{ gap: 10, marginBottom: 'var(--s8)' }}>
+        <div className="row between">
+          <b>visual</b>
+          <span className="tag">{THEMES[themeId].name}</span>
+        </div>
+        {THEME_ORDER.map((id) => {
+          const t = THEMES[id]
+          return (
+            <button key={id} className={`theme-opt${themeId === id ? ' on' : ''}`} onClick={() => { applyTheme(id); setThemeId(id) }} aria-pressed={themeId === id}>
+              <span className="sample" style={{ borderRadius: t.radius.md, color: t.color.accent }}>
+                <span style={{ fontFamily: `'${t.fonts.display}'`, fontWeight: t.display.weight, fontStretch: t.display.stretch }}>{t.display.upper ? 'AA' : 'Aa'}</span>
+              </span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <b style={{ display: 'block', fontFamily: `'${t.fonts.display}'`, fontWeight: t.display.weight, fontStretch: t.display.stretch, fontSize: 20 * t.display.scale + 4, textTransform: t.display.upper ? 'uppercase' : 'none' }}>{t.name}</b>
+                <small className="faint" style={{ display: 'block' }}>{t.blurb}</small>
+                <small style={{ fontFamily: `'${t.fonts.num}'`, color: t.color.accent2, fontSize: 15 }}>10.10.26 · 07 reg.</small>
+              </span>
+            </button>
+          )
+        })}
+      </section>
 
       {profile && (
         <section className="glass card stack" style={{ gap: 14, marginBottom: 'var(--s8)' }}>

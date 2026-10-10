@@ -1,6 +1,7 @@
 import { db } from './db'
 import { KIND_META, dotDate } from './periods'
 import { ENTRY_LABEL, ENTRY_ORDER, type Entry, type Period, type Reading } from './types'
+import { currentTheme } from './theme'
 
 export type CardFormat = 'story' | 'carousel'
 
@@ -14,14 +15,23 @@ interface Ctx {
 const INK = '#f4f1f8'
 const INK2 = 'rgba(244,241,248,.66)'
 const INK3 = 'rgba(244,241,248,.4)'
-const SERIF = '"Instrument Serif", "Times New Roman", serif'
-const UI = 'Manrope, system-ui, sans-serif'
-const DOT = 'Doto, ui-monospace, monospace'
+
+/* fontes do tema ativo */
+const ui = () => `'${currentTheme().fonts.ui}', system-ui, sans-serif`
+const num = () => `'${currentTheme().fonts.num}', ui-monospace, monospace`
+/** fonte de título: peso e escala do tema */
+const disp = (size: number) => {
+  const t = currentTheme()
+  return `${t.display.weight} ${Math.round(size * t.display.scale)}px '${t.fonts.display}', sans-serif`
+}
+/** caixa alta quando o tema pede */
+const dt = (s: string) => (currentTheme().display.upper ? s.toUpperCase() : s)
+const accent = () => currentTheme().color.accent
 
 async function ensureFonts() {
   if (!document.fonts) return
   await Promise.all(
-    [`italic 100px ${SERIF}`, `600 40px ${UI}`, `500 40px ${UI}`, `900 60px ${DOT}`, `700 40px ${DOT}`].map((f) => document.fonts.load(f).catch(() => null)),
+    [disp(100), `600 40px ${ui()}`, `500 40px ${ui()}`, `900 60px ${num()}`, `700 40px ${num()}`].map((f) => document.fonts.load(f).catch(() => null)),
   )
 }
 
@@ -124,19 +134,13 @@ function sparkle(g: CanvasRenderingContext2D, x: number, y: number, r: number, c
 
 function chromeText(g: CanvasRenderingContext2D, text: string, x: number, y: number, size: number, align: CanvasTextAlign = 'left') {
   g.save()
-  g.font = `italic ${size}px ${SERIF}`
+  g.font = disp(size)
   g.textAlign = align
   g.textBaseline = 'alphabetic'
-  const grd = g.createLinearGradient(0, y - size * 0.8, 0, y + size * 0.1)
-  grd.addColorStop(0, '#ffffff')
-  grd.addColorStop(0.38, '#d8dbe3')
-  grd.addColorStop(0.55, '#7a8190')
-  grd.addColorStop(0.7, '#eef0f5')
-  grd.addColorStop(1, '#a1a7b3')
-  g.shadowColor = 'rgba(201,182,255,.55)'
-  g.shadowBlur = size * 0.4
-  g.fillStyle = grd
-  g.fillText(text, x, y)
+  g.shadowColor = accent()
+  g.shadowBlur = size * 0.5
+  g.fillStyle = INK
+  g.fillText(dt(text), x, y)
   g.restore()
 }
 
@@ -195,8 +199,8 @@ function tile(g: CanvasRenderingContext2D, ctx: Ctx, e: Entry, x: number, y: num
     g.fillStyle = 'rgba(0,0,0,.25)'
     g.fillRect(x, y, size, size)
     g.fillStyle = '#fff'
-    g.font = `italic ${size * 0.15}px ${SERIF}`
-    wrap(g, e.title, size * 0.84, 3).forEach((l, i) => g.fillText(l, x + size * 0.08, y + size * 0.62 + i * size * 0.15))
+    g.font = disp(size * 0.15)
+    wrap(g, dt(e.title), size * 0.84, 3).forEach((l, i) => g.fillText(l, x + size * 0.08, y + size * 0.62 + i * size * 0.15))
   }
   g.restore()
   g.save()
@@ -209,7 +213,7 @@ function tile(g: CanvasRenderingContext2D, ctx: Ctx, e: Entry, x: number, y: num
 
 function typeBadge(g: CanvasRenderingContext2D, e: Entry, x: number, y: number, scale = 1) {
   g.save()
-  g.font = `600 ${18 * scale}px ${UI}`
+  g.font = `600 ${18 * scale}px ${ui()}`
   const label = ENTRY_LABEL[e.type].one.toUpperCase()
   const h = 34 * scale
   rrect(g, x + 14 * scale, y + 14 * scale, g.measureText(label).width + 26 * scale, h, h / 2)
@@ -242,9 +246,9 @@ function polaroid(g: CanvasRenderingContext2D, img: ImageBitmap, cx: number, cy:
   g.fillRect(-w / 2 + pad, -h / 2 + pad, w - pad * 2, w - pad * 2)
   if (caption) {
     g.fillStyle = '#2a2730'
-    g.font = `italic ${pad * 1.5}px ${SERIF}`
+    g.font = disp(pad * 1.5)
     g.textAlign = 'center'
-    g.fillText(wrap(g, caption, w - pad * 4, 1)[0], 0, h / 2 - pad * 1.2)
+    g.fillText(wrap(g, dt(caption), w - pad * 4, 1)[0], 0, h / 2 - pad * 1.2)
   }
   g.restore()
 }
@@ -280,9 +284,10 @@ function counts(entries: Entry[]) {
 
 function header(g: CanvasRenderingContext2D, ctx: Ctx, w: number, top: number, pad: number) {
   chromeText(g, 'moody', pad, top + 60, 76)
-  sparkle(g, pad + 205, top + 6, 13, '#c9b6ff')
+  g.font = disp(76)
+  sparkle(g, pad + g.measureText(dt('moody')).width + 22, top + 6, 13, accent())
   g.fillStyle = INK2
-  g.font = `700 30px ${DOT}`
+  g.font = `700 30px ${num()}`
   g.textAlign = 'right'
   g.fillText(`${dotDate(ctx.period.start)} — ${dotDate(ctx.period.end)}`, w - pad, top + 50)
   g.textAlign = 'left'
@@ -306,10 +311,10 @@ function statsRow(g: CanvasRenderingContext2D, ctx: Ctx, x: number, y: number, m
   const col = Math.min(200, maxW / list.length)
   list.slice(0, 6).forEach(([t, n], i) => {
     g.fillStyle = INK
-    g.font = `900 64px ${DOT}`
+    g.font = `900 64px ${num()}`
     g.fillText(String(n).padStart(2, '0'), x + i * col, y)
     g.fillStyle = INK3
-    g.font = `500 24px ${UI}`
+    g.font = `500 24px ${ui()}`
     g.fillText(n === 1 ? ENTRY_LABEL[t].one : ENTRY_LABEL[t].many, x + i * col, y + 40)
   })
 }
@@ -324,13 +329,13 @@ function story(ctx: Ctx): HTMLCanvasElement {
   header(g, ctx, W, 96, P)
 
   g.fillStyle = INK3
-  g.font = `600 24px ${UI}`
+  g.font = `600 24px ${ui()}`
   g.letterSpacing = '6px'
   g.fillText(`RECAP · ${KIND_META[ctx.period.kind].label.toUpperCase()} · ${ctx.period.title.toUpperCase()}`, P, 300)
   g.letterSpacing = '0px'
 
-  g.font = `italic 132px ${SERIF}`
-  const nameLines = wrap(g, reading.name, W - P * 2, 3)
+  g.font = disp(132)
+  const nameLines = wrap(g, dt(reading.name), W - P * 2, 3)
   g.fillStyle = INK
   g.shadowColor = withAlpha(reading.palette[0], 0.7)
   g.shadowBlur = 60
@@ -338,7 +343,7 @@ function story(ctx: Ctx): HTMLCanvasElement {
   g.shadowBlur = 0
   let y = 430 + (nameLines.length - 1) * 128 + 80
 
-  g.font = `500 36px ${UI}`
+  g.font = `500 36px ${ui()}`
   g.fillStyle = INK2
   let x = P
   reading.words.forEach((w) => {
@@ -375,7 +380,7 @@ function story(ctx: Ctx): HTMLCanvasElement {
   statsRow(g, ctx, P, 1712, W - P * 2)
   paletteDots(g, reading.palette, P + 18, 1836, 18)
   g.fillStyle = INK3
-  g.font = `500 22px ${UI}`
+  g.font = `500 22px ${ui()}`
   g.textAlign = 'right'
   g.fillText('feito no moody ✦', W - P, 1844)
   g.textAlign = 'left'
@@ -398,23 +403,23 @@ function carousel(ctx: Ctx): HTMLCanvasElement[] {
     background(g, W, H, reading.palette)
     header(g, ctx, W, 80, P)
     g.fillStyle = INK3
-    g.font = `600 22px ${UI}`
+    g.font = `600 22px ${ui()}`
     g.letterSpacing = '6px'
     g.fillText(`${KIND_META[ctx.period.kind].label.toUpperCase()} · ${ctx.period.title.toUpperCase()}`, P, 420)
     g.letterSpacing = '0px'
-    g.font = `italic 150px ${SERIF}`
+    g.font = disp(150)
     g.fillStyle = INK
     g.shadowColor = withAlpha(reading.palette[0], 0.7)
     g.shadowBlur = 70
-    const lines = wrap(g, reading.name, W - P * 2, 3)
+    const lines = wrap(g, dt(reading.name), W - P * 2, 3)
     lines.forEach((l, i) => g.fillText(l, P, 560 + i * 142))
     g.shadowBlur = 0
     let y = 560 + (lines.length - 1) * 142 + 90
-    g.font = `500 34px ${UI}`
+    g.font = `500 34px ${ui()}`
     g.fillStyle = INK2
     g.fillText(reading.words.join('  ✧  '), P, y)
     y += 70
-    g.font = `400 30px ${UI}`
+    g.font = `400 30px ${ui()}`
     g.fillStyle = INK3
     wrap(g, reading.summary, W - P * 2, 3).forEach((l, i) => g.fillText(l, P, y + i * 44))
     const bw = (W - P * 2) / reading.palette.length
@@ -451,17 +456,17 @@ function carousel(ctx: Ctx): HTMLCanvasElement[] {
       typeBadge(g, e, x, y, cols === 2 ? 1 : 0.85)
       const ty = y + size + (cols === 2 ? 50 : 44)
       g.fillStyle = INK
-      g.font = `italic ${cols === 2 ? 44 : 36}px ${SERIF}`
-      g.fillText(wrap(g, e.title, size, 1)[0], x, ty)
+      g.font = disp(cols === 2 ? 44 : 36)
+      g.fillText(wrap(g, dt(e.title), size, 1)[0], x, ty)
       g.fillStyle = INK2
-      g.font = `400 ${cols === 2 ? 24 : 21}px ${UI}`
+      g.font = `400 ${cols === 2 ? 24 : 21}px ${ui()}`
       const sub = [e.subtitle, e.year].filter(Boolean).join(' · ')
       if (sub) g.fillText(wrap(g, sub, size, 1)[0], x, ty + (cols === 2 ? 36 : 31))
       if (typeof e.rating === 'number') stars(g, x, ty + (cols === 2 ? 76 : 66), cols === 2 ? 26 : 22, e.rating, reading.palette[0])
     })
     if (media.length > items.length) {
       g.fillStyle = INK3
-      g.font = `500 24px ${UI}`
+      g.font = `500 24px ${ui()}`
       g.textAlign = 'right'
       g.fillText(`+ ${media.length - items.length} no período`, W - P, H - 60)
       g.textAlign = 'left'
@@ -505,11 +510,11 @@ function carousel(ctx: Ctx): HTMLCanvasElement[] {
       places.slice(0, 5).forEach((p) => {
         sparkle(g, P + 12, y - 12, 10, reading.palette[0])
         g.fillStyle = INK
-        g.font = `500 40px ${UI}`
+        g.font = `500 40px ${ui()}`
         g.fillText(wrap(g, p.title, 620, 1)[0], P + 44, y)
         if (p.subtitle) {
           g.fillStyle = INK3
-          g.font = `400 28px ${UI}`
+          g.font = `400 28px ${ui()}`
           g.textAlign = 'right'
           g.fillText(p.subtitle, W - P, y)
           g.textAlign = 'left'
@@ -524,12 +529,12 @@ function carousel(ctx: Ctx): HTMLCanvasElement[] {
       for (const q of quotes.slice(0, 4)) {
         if (y > H - 140) break
         g.fillStyle = INK
-        g.font = `italic 44px ${SERIF}`
-        const lines = wrap(g, `“${q.note}”`, W - P * 2, 2)
+        g.font = disp(44)
+        const lines = wrap(g, dt(`“${q.note}”`), W - P * 2, 2)
         lines.forEach((l, i) => g.fillText(l, P, y + i * 50))
         y += lines.length * 50 + 6
         g.fillStyle = INK3
-        g.font = `500 24px ${UI}`
+        g.font = `500 24px ${ui()}`
         g.fillText(`— sobre ${q.title}`, P, y)
         y += 70
       }

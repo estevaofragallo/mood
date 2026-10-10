@@ -1,18 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <radialGradient id="a" cx="30%" cy="25%" r="80%">
-      <stop offset="0" stop-color="#d9c8ff"/>
-      <stop offset=".45" stop-color="#8fd3ff" stop-opacity=".55"/>
-      <stop offset="1" stop-color="#050506" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="b" cx="80%" cy="85%" r="70%">
-      <stop offset="0" stop-color="#ff9ecf" stop-opacity=".8"/>
-      <stop offset="1" stop-color="#050506" stop-opacity="0"/>
+    <radialGradient id="g" cx="50%" cy="0%" r="90%">
+      <stop offset="0" stop-color="#2b5cff" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0"/>
     </radialGradient>
   </defs>
-  <rect width="512" height="512" rx="128" fill="#050506"/>
-  <rect width="512" height="512" rx="128" fill="url(#a)"/>
-  <rect width="512" height="512" rx="128" fill="url(#b)"/>
-  <text x="256" y="330" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="260" fill="#f6f2ff">m</text>
-  <path d="M392 120l8 22 22 8-22 8-8 22-8-22-22-8 22-8z" fill="#fff"/>
+  <rect width="512" height="512" rx="112" fill="#000"/>
+  <rect width="512" height="512" rx="112" fill="url(#g)"/>
+  <text x="256" y="330" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="230" fill="#f2f4ff">M</text>
+  <rect x="136" y="372" width="240" height="22" rx="4" fill="#2b5cff"/>
 </svg>

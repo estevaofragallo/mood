@@ -32,14 +32,14 @@ export function Home({ openPeriod, newPeriod, editEntry }: Props) {
         </div>
       </header>
 
-      <p className="serif" style={{ fontSize: 30, lineHeight: 1.1, margin: '0 0 22px', maxWidth: 320 }}>
+      <p className="serif" style={{ fontSize: 'calc(34px * var(--display-scale))', margin: '0 0 22px', maxWidth: 340 }}>
         quem você está sendo <span className="muted">agora</span>
       </p>
 
       {toClose.map((p) => (
-        <button key={p.id} className="glass card tight row between interactive" style={{ width: '100%', marginBottom: 12, borderColor: 'rgba(215,255,90,.35)' }} onClick={() => openPeriod(p.id)}>
+        <button key={p.id} className="glass card tight row between interactive" style={{ width: '100%', marginBottom: 12, borderColor: 'var(--accent)' }} onClick={() => openPeriod(p.id)}>
           <span style={{ textAlign: 'left' }}>
-            <b style={{ color: 'var(--lime)' }}>✦ {p.title} terminou</b>
+            <b style={{ color: 'var(--accent-2)' }}>✦ {p.title} terminou</b>
             <small className="muted" style={{ display: 'block' }}>feche o recap e guarde essa era</small>
           </span>
           <Icon name="chevron" size={18} />

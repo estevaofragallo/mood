@@ -32,9 +32,17 @@ npm run build      # typecheck + build de produção em dist/
 
 ## Design
 
-Base preta com atmosfera Y2K/Tumblr: vidro fosco, texto cromado, brilhos ✦, grão e linhas de varredura. Do design system de referência vêm os cartões com cantos bem arredondados, a pílula de vidro na navegação, o botão pílula com "+" circular, os números em matriz de pontos e o arco de progresso pontilhado.
+Preto e azul, em linguagem plana e lo-fi inspirada na estética dos apps de GIF dos anos 2010: caixa alta, bordas duras, grão, linhas de varredura e grade de capas. Nenhum logotipo, fonte ou elemento de marca de terceiros é reproduzido.
 
-Tokens em `src/styles/global.css` (`:root`). Fontes: Instrument Serif (títulos em itálico), Manrope (interface) e Doto (números e datas em matriz de pontos).
+Há três opções de visual, que variam tipografia, tom de azul e cantos. A escolha fica em *ajustes → visual* e vale também para os cards exportados:
+
+| Opção | Títulos | Texto | Números | Azul |
+|---|---|---|---|---|
+| LOOP | Archivo (larga, 900) | Archivo | Space Mono | elétrico `#2B5CFF` |
+| FLASH | Anton (condensada) | DM Sans | VT323 | neon `#00B2FF` |
+| STICKER | Unbounded (arredondada) | Figtree | Silkscreen | cobalto `#3D6BFF` |
+
+Todas as fontes são do Google Fonts, com licença aberta (OFL). Os tokens ficam em `src/lib/theme.ts` e `src/styles/global.css`.
 
 ## Estrutura
 
@@ -50,7 +58,8 @@ src/
     reading-ai.ts   leitura via Claude (carregado sob demanda)
     profile.ts      perfil: favoritos, modo e dados de nascimento (localStorage)
     card.ts         renderização dos cards em canvas
-    settings.ts     chave da API e modelo (localStorage)
+    settings.ts     chaves de API e modelo (localStorage)
+    theme.ts        as três opções de visual e a aplicação dos tokens
   store.tsx         estado global + cache de imagens
   screens/          Home, PeriodScreen, ShareScreen, Eras, Settings, sheets
   components/       Icon, Sheet, Rating, Cover, PeriodCard, Toast

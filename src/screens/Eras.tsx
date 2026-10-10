@@ -42,13 +42,13 @@ export function Eras({ openPeriod }: { openPeriod: (id: string) => void }) {
           {list.map((p) => {
             const n = entriesOf(p).length
             return (
-              <div key={p.id} className="era" style={{ ['--era-c' as string]: p.reading?.palette[0] ?? 'var(--lilac)' }}>
+              <div key={p.id} className="era" style={{ ['--era-c' as string]: p.reading?.palette[0] ?? 'var(--accent)' }}>
                 <button className="glass card interactive" style={{ width: '100%', textAlign: 'left', borderRadius: 26, opacity: p.status === 'open' ? 0.85 : 1 }} onClick={() => openPeriod(p.id)}>
                   <div className="row between">
                     <span className="dot faint" style={{ fontSize: 13 }}>{dotDate(p.start)} → {dotDate(p.end)}</span>
                     <span className="tag">{KIND_META[p.kind].label}{p.status === 'open' ? (phaseOf(p) === 'ended' ? ' · a fechar' : phaseOf(p) === 'upcoming' ? ' · em breve' : ' · em curso') : ''}</span>
                   </div>
-                  <p className="serif" style={{ fontSize: 28, lineHeight: 1.05, margin: '10px 0 4px' }}>{p.reading?.name ?? p.title}</p>
+                  <p className="serif" style={{ fontSize: 'calc(30px * var(--display-scale))', margin: '12px 0 6px' }}>{p.reading?.name ?? p.title}</p>
                   {p.reading && <p className="faint" style={{ margin: 0, fontSize: 13 }}>{p.title} · {p.reading.words.join(' · ')}</p>}
                   <div className="row between" style={{ marginTop: 14 }}>
                     {p.reading ? <Swatches colors={p.reading.palette} /> : <span className="faint" style={{ fontSize: 12 }}>sem leitura ainda</span>}

@@ -4,7 +4,7 @@ import { Icon, type IconName } from '../components/Icon'
 import { Cover } from '../components/Cover'
 import { Rating } from '../components/Rating'
 import { Sheet } from '../components/Sheet'
-import { ProgressArc } from '../components/PeriodCard'
+import { SegBar } from '../components/PeriodCard'
 import { useToast } from '../components/Toast'
 import { ReadingEditor } from './ReadingEditor'
 import { db } from '../lib/db'
@@ -95,7 +95,7 @@ export function PeriodScreen({ period, back, share, addEntry, editEntry }: Props
     toast('recap fechado — virou era ✦')
   }
 
-  const palette = reading?.palette ?? ['#8c74ff', '#5fb8ff', '#ff7ec2']
+  const palette = reading?.palette ?? ['#2b5cff', '#0a1a4d', '#8fb0ff']
   const defaultDate = inRange(today(), period) ? today() : phase === 'upcoming' ? period.start : period.end
 
   return (
@@ -108,14 +108,14 @@ export function PeriodScreen({ period, back, share, addEntry, editEntry }: Props
 
       <div style={{ position: 'relative', marginBottom: 6 }}>
         <div style={{ position: 'absolute', inset: '-40px -16px auto', height: 260, zIndex: -1, filter: 'blur(50px)', opacity: 0.45, background: `radial-gradient(circle at 20% 40%, ${palette[0]}, transparent 60%), radial-gradient(circle at 85% 30%, ${palette[1]}, transparent 55%)` }} />
-        <h1 className="serif" style={{ fontWeight: 400, fontSize: 46, lineHeight: 1, margin: '6px 0 8px', letterSpacing: '-0.015em' }}>{period.title}</h1>
+        <h1 className="serif" style={{ fontSize: 'calc(52px * var(--display-scale))', margin: '6px 0 10px' }}>{period.title}</h1>
         <div className="row between">
           <span className="dot muted" style={{ fontSize: 15 }}>{dotDate(period.start)} → {dotDate(period.end)}</span>
           <span className="faint" style={{ fontSize: 12 }}>
             {phase === 'running' ? `dia ${pr.elapsed} de ${pr.total}` : phase === 'upcoming' ? 'começa em breve' : `${pr.total} dias`}
           </span>
         </div>
-        <ProgressArc ratio={pr.ratio} />
+        <SegBar total={pr.total} elapsed={pr.elapsed} />
       </div>
 
       {/* leitura */}
@@ -143,7 +143,7 @@ export function PeriodScreen({ period, back, share, addEntry, editEntry }: Props
         ) : (
           <div className="glass card" style={{ textAlign: 'center', padding: '28px 22px' }}>
             <Icon name="sparkle" size={30} className="sparkle" />
-            <p className="serif" style={{ fontSize: 26, margin: '8px 0 6px' }}>quem você foi aqui?</p>
+            <p className="serif" style={{ fontSize: 'calc(28px * var(--display-scale))', margin: '10px 0 8px' }}>quem você foi aqui?</p>
             <p className="muted" style={{ fontSize: 14, margin: '0 0 18px' }}>
               {hasKey ? 'a IA sugere um nome para a fase, palavras e uma paleta. você edita como quiser.' : 'gere uma leitura local agora, ou conecte a IA em ajustes para leituras mais finas.'}
             </p>
