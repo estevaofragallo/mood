@@ -2,6 +2,8 @@ import { useStore } from '../store'
 import { Cover } from '../components/Cover'
 import { PeriodCard } from '../components/PeriodCard'
 import { Icon } from '../components/Icon'
+import { DailyCard } from '../components/DailyCard'
+import type { Pick } from '../lib/daily'
 import { FIXED_KINDS, MONTHS, dotDate, phaseOf, today } from '../lib/periods'
 import { ENTRY_LABEL, type Entry, type PeriodKind } from '../lib/types'
 
@@ -9,9 +11,10 @@ interface Props {
   openPeriod: (id: string) => void
   newPeriod: (kind?: PeriodKind) => void
   editEntry: (e: Entry) => void
+  registerPick: (p: Pick) => void
 }
 
-export function Home({ openPeriod, newPeriod, editEntry }: Props) {
+export function Home({ openPeriod, newPeriod, editEntry, registerPick }: Props) {
   const { periods, entries, entriesOf } = useStore()
   const now = new Date()
   const open = periods
@@ -32,9 +35,13 @@ export function Home({ openPeriod, newPeriod, editEntry }: Props) {
         </div>
       </header>
 
-      <p className="serif" style={{ fontSize: 'calc(34px * var(--display-scale))', margin: '0 0 22px', maxWidth: 340 }}>
+      <p className="serif" style={{ fontSize: 'calc(26px * var(--display-scale))', margin: '0 0 18px', maxWidth: 340 }}>
         quem você está sendo <span className="muted">agora</span>
       </p>
+
+      <DailyCard onRegister={registerPick} />
+
+      <div style={{ height: 'var(--s8)' }} />
 
       {toClose.map((p) => (
         <button key={p.id} className="glass card tight row between interactive" style={{ width: '100%', marginBottom: 12, borderColor: 'var(--accent)' }} onClick={() => openPeriod(p.id)}>

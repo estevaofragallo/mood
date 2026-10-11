@@ -44,8 +44,10 @@ export const THEMES: Record<ThemeId, Theme> = {
   },
 }
 
-export const THEME_ORDER: ThemeId[] = ['loop', 'flash', 'sticker']
-const KEY = 'moody.theme'
+export const THEME_ORDER: ThemeId[] = ['flash', 'loop', 'sticker']
+export const DEFAULT_THEME: ThemeId = 'flash'
+/** v2: só guarda a escolha explícita feita em ajustes */
+const KEY = 'moody.theme.v2'
 
 export function loadThemeId(): ThemeId {
   try {
@@ -54,13 +56,13 @@ export function loadThemeId(): ThemeId {
   } catch {
     /* ignora */
   }
-  return 'loop'
+  return DEFAULT_THEME
 }
 
-let current: Theme = THEMES.loop
+let current: Theme = THEMES[DEFAULT_THEME]
 export const currentTheme = () => current
 
-export function applyTheme(id: ThemeId) {
+export function applyTheme(id: ThemeId, persist = false) {
   const t = THEMES[id]
   current = t
   const r = document.documentElement
@@ -83,6 +85,7 @@ export function applyTheme(id: ThemeId) {
   set('--r-lg', `${t.radius.lg}px`)
   set('--r-xl', `${t.radius.xl}px`)
   set('--r-btn', `${t.radius.btn}px`)
+  if (!persist) return
   try {
     localStorage.setItem(KEY, id)
   } catch {

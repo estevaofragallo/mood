@@ -15,6 +15,8 @@ npm run build      # typecheck + build de produção em dist/
 ## Como o produto funciona
 
 - **Primeiro acesso.** Três livros, três álbuns e três filmes que definem a pessoa (por busca nos catálogos ou à mão; cada etapa pode ser pulada). Em seguida, a escolha do modo: *pelo meu gosto e humor* ou *com astrologia* (data, hora opcional e cidade de nascimento). As duas opções aparecem com o mesmo peso e em ordem aleatória, e a ordem fica registrada no perfil para medir viés de posição. Tudo pode ser editado ou desligado em *ajustes*; desligar o modo astral apaga os dados de nascimento.
+- **Indicação do dia.** No topo da tela inicial: a pessoa marca como está (leve, intenso, nostálgico…) e o tipo de mídia que quer, e recebe uma obra com duas alternativas. Com a chave da API, o Claude cruza favoritos, registros com notas, humor e, no modo astral, a lua do dia, o Sol e a Lua natais e os aspectos ao Sol natal. Sem chave, uma curadoria local de cerca de 40 obras é filtrada pelo humor. Nunca indica o que já foi registrado, favoritado, indicado antes ou marcado como "já conheço". "Registrar" abre o registro já preenchido.
+- **Céu calculado no aparelho.** Signos, fase da Lua e aspectos são calculados localmente com `astronomy-engine` (MIT); os dados de nascimento não saem do aparelho. Sem hora de nascimento, a Lua natal é marcada como incerta quando muda de signo naquele dia. Ascendente e casas ficam para uma próxima etapa, porque exigem converter a cidade em coordenadas.
 - **Diário + janelas.** Cada registro (álbum, filme, série, livro, lugar, foto) tem uma data. Os períodos são janelas sobre o diário: tudo entre o início e o fim entra no recap. Por isso os períodos podem se sobrepor (um mês dentro de um trimestre, uma viagem dentro do ano), e um período criado depois do fato já sai preenchido.
 - **Periodicidades.** Sugeridas: 1 mês, 3 meses, 6 meses, 1 ano (fim calculado automaticamente). Personalizadas: semanal, viagem (com destino) e livre (início, fim e nome à escolha).
 - **Leitura de humor.** A IA sugere e você edita. Com uma chave da API da Anthropic (em *ajustes*), o Claude gera nome, palavras, paleta e resumo. Sem chave, ou se a chamada falhar, um motor local monta a leitura a partir dos tipos de registro, das notas e das cores extraídas das fotos. Em qualquer caso, nome, palavras, paleta e resumo são editáveis.
@@ -56,6 +58,9 @@ src/
     images.ts       remoção de metadados, capas, extração de cores
     reading.ts      motor de leitura local
     reading-ai.ts   leitura via Claude (carregado sob demanda)
+    daily.ts        indicação do dia: humor, curadoria local, histórico
+    daily-ai.ts     indicação do dia via Claude (carregado sob demanda)
+    astro.ts        signos natais, lua do dia e aspectos (astronomy-engine)
     profile.ts      perfil: favoritos, modo e dados de nascimento (localStorage)
     card.ts         renderização dos cards em canvas
     settings.ts     chaves de API e modelo (localStorage)

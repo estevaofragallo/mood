@@ -34,19 +34,23 @@ interface Props {
   defaultDate?: string
   /** registro existente: abre em modo edição */
   editing?: Entry
+  /** novo registro já preenchido (ex.: indicação do dia) */
+  prefill?: { type: EntryType; title: string; subtitle?: string; year?: string; coverUrl?: string }
 }
 
-export function AddEntrySheet({ onClose, defaultDate, editing }: Props) {
+export function AddEntrySheet({ onClose, defaultDate, editing, prefill }: Props) {
   const { addEntry, updateEntry, deleteEntry } = useStore()
   const toast = useToast()
-  const [type, setType] = useState<EntryType>(editing?.type ?? 'album')
-  const [title, setTitle] = useState(editing?.title ?? '')
-  const [subtitle, setSubtitle] = useState(editing?.subtitle ?? '')
-  const [year, setYear] = useState(editing?.year ?? '')
+  const [type, setType] = useState<EntryType>(editing?.type ?? prefill?.type ?? 'album')
+  const [title, setTitle] = useState(editing?.title ?? prefill?.title ?? '')
+  const [subtitle, setSubtitle] = useState(editing?.subtitle ?? prefill?.subtitle ?? '')
+  const [year, setYear] = useState(editing?.year ?? prefill?.year ?? '')
   const [rating, setRating] = useState<number | undefined>(editing?.rating)
   const [note, setNote] = useState(editing?.note ?? '')
   const [date, setDate] = useState(editing?.date ?? defaultDate ?? today())
-  const [hit, setHit] = useState<CatalogHit | null>(null)
+  const [hit, setHit] = useState<CatalogHit | null>(() =>
+    prefill?.coverUrl ? { key: 'prefill', title: prefill.title, subtitle: prefill.subtitle, year: prefill.year, coverUrls: [prefill.coverUrl], source: prefill.type === 'book' ? 'googlebooks' : prefill.type === 'album' ? 'musicbrainz' : 'tmdb' } : null,
+  )
   const [files, setFiles] = useState<File[]>([])
   // capa enviada à mão: undefined = sem mudança, null = removida, File = nova
   const [coverFile, setCoverFile] = useState<File | null | undefined>(undefined)

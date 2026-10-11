@@ -13,7 +13,7 @@ import { inRange, today } from './lib/periods'
 import type { Entry, PeriodKind } from './lib/types'
 
 type Route = { name: 'home' } | { name: 'eras' } | { name: 'settings' } | { name: 'period'; id: string } | { name: 'share'; id: string }
-type Overlay = { kind: 'add'; date?: string } | { kind: 'edit'; entry: Entry } | { kind: 'period'; initial?: PeriodKind } | null
+type Overlay = { kind: 'add'; date?: string; prefill?: Parameters<typeof AddEntrySheet>[0]['prefill'] } | { kind: 'edit'; entry: Entry } | { kind: 'period'; initial?: PeriodKind } | null
 
 export function App() {
   const { ready, periods, profile } = useStore()
@@ -94,7 +94,9 @@ export function App() {
 
       <main className="app" key={route.name + ('id' in route ? route.id : '')}>
         {route.name === 'home' && (
-          <Home openPeriod={(id) => go({ name: 'period', id })} newPeriod={(initial) => setOverlay({ kind: 'period', initial })} editEntry={(entry) => setOverlay({ kind: 'edit', entry })} />
+          <Home openPeriod={(id) => go({ name: 'period', id })} newPeriod={(initial) => setOverlay({ kind: 'period', initial })} editEntry={(entry) => setOverlay({ kind: 'edit', entry })}
+            registerPick={(p) => setOverlay({ kind: 'add', prefill: { type: p.type, title: p.title, subtitle: p.creator, year: p.year, coverUrl: p.coverUrl } })}
+          />
         )}
         {route.name === 'eras' && <Eras openPeriod={(id) => go({ name: 'period', id })} />}
         {route.name === 'settings' && <Settings editProfile={(at) => setEditProfile(at)} />}
@@ -129,7 +131,7 @@ export function App() {
         </nav>
       )}
 
-      {overlay?.kind === 'add' && <AddEntrySheet defaultDate={overlay.date} onClose={() => setOverlay(null)} />}
+      {overlay?.kind === 'add' && <AddEntrySheet defaultDate={overlay.date} prefill={overlay.prefill} onClose={() => setOverlay(null)} />}
       {overlay?.kind === 'edit' && <AddEntrySheet editing={overlay.entry} onClose={() => setOverlay(null)} />}
       {overlay?.kind === 'period' && (
         <NewPeriodSheet

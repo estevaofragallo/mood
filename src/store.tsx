@@ -3,6 +3,7 @@ import { db, uid } from './lib/db'
 import { inRange } from './lib/periods'
 import type { Entry, Period } from './lib/types'
 import { loadProfile, persistProfile, type Profile } from './lib/profile'
+import { clearDaily } from './lib/daily'
 
 interface Store {
   ready: boolean
@@ -119,6 +120,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setEntries([])
     setPeriods([])
     persistProfile(null)
+    clearDaily()
     setProfile(null)
   }, [])
 

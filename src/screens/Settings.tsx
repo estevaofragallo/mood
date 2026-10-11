@@ -49,7 +49,7 @@ export function Settings({ editProfile }: { editProfile: (at: 'book' | 'mode') =
         {THEME_ORDER.map((id) => {
           const t = THEMES[id]
           return (
-            <button key={id} className={`theme-opt${themeId === id ? ' on' : ''}`} onClick={() => { applyTheme(id); setThemeId(id) }} aria-pressed={themeId === id}>
+            <button key={id} className={`theme-opt${themeId === id ? ' on' : ''}`} onClick={() => { applyTheme(id, true); setThemeId(id) }} aria-pressed={themeId === id}>
               <span className="sample" style={{ borderRadius: t.radius.md, color: t.color.accent }}>
                 <span style={{ fontFamily: `'${t.fonts.display}'`, fontWeight: t.display.weight, fontStretch: t.display.stretch }}>{t.display.upper ? 'AA' : 'Aa'}</span>
               </span>
