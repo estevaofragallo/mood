@@ -83,3 +83,15 @@ export function skyToday(n: Natal | null, date = new Date()): Sky {
     transits: transits.sort((a, b) => a.orb - b.orb).map((t) => t.text).slice(0, 3),
   }
 }
+
+export interface AstroContext {
+  natal: Natal
+  sky: Sky
+  line: string
+}
+
+export function astroContext(birth: BirthData): AstroContext {
+  const n = natal(birth)
+  const sky = skyToday(n)
+  return { natal: n, sky, line: [`${sky.phase} em ${sky.moonSign}`, sky.transits[0]].filter(Boolean).join(' · ') }
+}

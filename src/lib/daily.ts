@@ -1,4 +1,5 @@
-import { natal, skyToday, type Sky, type Natal } from './astro'
+import type { AstroContext } from './astro'
+export type { AstroContext } from './astro'
 import type { Profile } from './profile'
 import type { Entry } from './types'
 import { today } from './periods'
@@ -99,22 +100,6 @@ export function excluded(entries: Entry[], profile: Profile | null, extra: strin
       ...extra,
     ].map(norm).concat(read<string[]>(KNOWN, [])),
   )
-}
-
-/* ───────── céu do dia ───────── */
-
-export interface AstroContext {
-  natal: Natal
-  sky: Sky
-  line: string
-}
-
-export function astroContext(profile: Profile | null): AstroContext | null {
-  if (profile?.mode !== 'astral' || !profile.birth?.date) return null
-  const n = natal(profile.birth)
-  const sky = skyToday(n)
-  const line = [`${sky.phase} em ${sky.moonSign}`, sky.transits[0]].filter(Boolean).join(' · ')
-  return { natal: n, sky, line }
 }
 
 /* ───────── motor local (sem IA) ───────── */

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useStore } from '../store'
 import { Icon } from './Icon'
 import { useToast } from './Toast'
@@ -7,8 +7,8 @@ import { loadSettings } from '../lib/settings'
 import { ENTRY_LABEL } from '../lib/types'
 import { dotDate, today } from '../lib/periods'
 import {
-  MOODS, PICK_TYPES, astroContext, excluded, loadDaily, localDaily, markKnown, norm, pastPicks, saveDaily,
-  type Daily, type MoodId, type Pick, type PickType,
+  MOODS, PICK_TYPES, excluded, loadDaily, localDaily, markKnown, norm, pastPicks, saveDaily,
+  type AstroContext, type Daily, type MoodId, type Pick, type PickType,
 } from '../lib/daily'
 
 /** Indicação do dia: humor opcional, tipo desejado, uma obra e duas alternativas. */
@@ -19,11 +19,17 @@ export function DailyCard({ onRegister }: { onRegister: (p: Pick) => void }) {
   const [mood, setMood] = useState<MoodId | undefined>(daily?.mood)
   const [want, setWant] = useState<PickType | 'any'>(daily?.want ?? 'any')
   const [busy, setBusy] = useState(false)
-  const astro = useMemo(() => {
-    try {
-      return astroContext(profile)
-    } catch {
-      return null
+  // o motor astronômico só é baixado no modo astral
+  const [astro, setAstro] = useState<AstroContext | null>(null)
+  useEffect(() => {
+    const birth = profile?.mode === 'astral' ? profile.birth : undefined
+    if (!birth?.date) return setAstro(null)
+    let alive = true
+    import('../lib/astro')
+      .then((m) => alive && setAstro(m.astroContext(birth)))
+      .catch(() => alive && setAstro(null))
+    return () => {
+      alive = false
     }
   }, [profile])
 
