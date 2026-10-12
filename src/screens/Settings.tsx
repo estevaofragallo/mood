@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon'
 import { Sheet } from '../components/Sheet'
 import { DEFAULT_MODEL, loadSettings, saveSettings } from '../lib/settings'
 import { THEMES, THEME_ORDER, applyTheme, loadThemeId } from '../lib/theme'
+import { runChecks, type CheckResult } from '../lib/diagnostics'
 
 const MODELS = [
   { id: 'claude-opus-5-5', label: 'Opus 5.5', hint: 'leituras mais finas (padrão)' },
@@ -16,6 +17,8 @@ export function Settings({ editProfile }: { editProfile: (at: 'book' | 'mode') =
   const { entries, periods, wipe, profile, saveProfile } = useStore()
   const [confirmBirth, setConfirmBirth] = useState(false)
   const [themeId, setThemeId] = useState(loadThemeId)
+  const [checks, setChecks] = useState<CheckResult[] | null>(null)
+  const [checking, setChecking] = useState(false)
   const toast = useToast()
   const [s, setS] = useState(loadSettings)
   const [confirm, setConfirm] = useState(false)
@@ -136,6 +139,30 @@ export function Settings({ editProfile }: { editProfile: (at: 'book' | 'mode') =
           <input className="input" type="password" autoComplete="off" placeholder="sem chave, vale a cota anônima do Google" value={s.googleKey} onChange={(e) => update({ googleKey: e.target.value.trim() })} />
         </label>
         <p className="note" style={{ margin: 0 }}>This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+      </section>
+
+      <section className="section glass card stack" style={{ gap: 12 }}>
+        <div className="row between">
+          <b>testar conexões</b>
+          {checks && <span className="tag">{checks.filter((c) => c.status === 'ok').length}/{checks.length} ok</span>}
+        </div>
+        <p className="note" style={{ margin: 0 }}>confere, a partir deste aparelho, se a IA e os catálogos respondem com as suas chaves. o teste do Claude gasta uma chamada mínima.</p>
+        <button className="btn glassy block" disabled={checking} onClick={async () => { setChecking(true); setChecks(await runChecks()); setChecking(false) }}>
+          {checking ? <span className="pending"><i /><i /><i /></span> : 'testar agora'}
+        </button>
+        {checks && (
+          <ul className="checks">
+            {checks.map((c) => (
+              <li key={c.id} className={c.status}>
+                <span className="mark">{c.status === 'ok' ? '✓' : c.status === 'skip' ? '–' : '✕'}</span>
+                <span style={{ minWidth: 0 }}>
+                  <b>{c.label}</b>
+                  <small>{c.detail}{c.ms ? ` · ${c.ms} ms` : ''}</small>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="section glass card stack" style={{ gap: 10 }}>

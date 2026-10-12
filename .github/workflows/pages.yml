@@ -1,0 +1,49 @@
+name: build e publicação
+
+on:
+  push:
+    branches: [main, claude/moody-app-design-ath7rh]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      publicar:
+        description: publicar no GitHub Pages
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: tipagem e build
+        run: npm run build
+        env:
+          BASE: /mood/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  # só publica quando acionado à mão (Actions → build e publicação → Run workflow)
+  # ou em push na main; exige Settings → Pages → Source: GitHub Actions
+  deploy:
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && inputs.publicar || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

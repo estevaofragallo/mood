@@ -6,6 +6,15 @@ Web app mobile-first (React + Vite + TypeScript), instalável como PWA. Todos os
 
 ## Rodar
 
+**No celular, sem instalar nada:** o workflow `.github/workflows/pages.yml` publica o app no GitHub Pages em `https://estevaofragallo.github.io/mood/`. Para ativar:
+1. no repositório, *Settings → Pages → Source: GitHub Actions*;
+2. se a publicação for feita a partir desta branch (antes do merge), em *Settings → Environments → github-pages*, permita a branch `claude/moody-app-design-ath7rh`;
+3. em *Actions → build e publicação → Run workflow*, marque "publicar".
+
+Depois do merge na `main`, cada push publica automaticamente. Em *ajustes → testar conexões*, o app verifica a partir do aparelho se o Claude e os catálogos respondem com as suas chaves.
+
+**No computador:**
+
 ```bash
 npm install
 npm run dev        # http://localhost:5173 (use --host para abrir no celular na mesma rede)
