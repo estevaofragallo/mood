@@ -329,3 +329,5 @@ hr.sep { border: 0; height: 1px; background: var(--line); margin: var(--s6) 0; }
 .checks li.ok .mark { background: var(--accent); color: var(--accent-ink); }
 .checks li.fail { border-color: rgba(255, 77, 94, 0.5); }
 .checks li.fail .mark { background: var(--danger); color: #000; }
+
+.daily-share-img { width: min(62%, 240px); aspect-ratio: 9 / 16; border-radius: var(--r-lg); box-shadow: 0 24px 50px -18px rgba(0,0,0,.9), 0 0 0 1.5px var(--line-strong); }

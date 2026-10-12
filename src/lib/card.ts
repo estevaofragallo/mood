@@ -2,6 +2,8 @@ import { db } from './db'
 import { KIND_META, dotDate } from './periods'
 import { ENTRY_LABEL, ENTRY_ORDER, type Entry, type Period, type Reading } from './types'
 import { currentTheme } from './theme'
+import { fetchCover } from './images'
+import type { Daily } from './daily'
 
 export type CardFormat = 'story' | 'carousel'
 
@@ -584,3 +586,134 @@ export async function renderRecap(format: CardFormat, period: Period, reading: R
   images.forEach((b) => b.close())
   return blobs
 }
+
+/* ───────────────── indicação do dia 1080×1920 ───────────────── */
+
+const DAILY_LABEL: Record<string, string> = { album: 'ÁLBUM', film: 'FILME', series: 'SÉRIE', book: 'LIVRO' }
+
+export async function renderDaily(daily: Daily): Promise<Blob> {
+  await ensureFonts()
+  const W = 1080, H = 1920, P = 84
+  const t = currentTheme()
+  const [c, g] = canvas(W, H)
+  const p = daily.pick
+
+  // capa: baixa com CORS e passa pelo mesmo tratamento das fotos; sem capa, bloco do tema
+  let cover: ImageBitmap | null = null
+  if (p.coverUrl) {
+    const blob = await fetchCover(p.coverUrl)
+    if (blob) cover = await createImageBitmap(blob).catch(() => null)
+  }
+
+  background(g, W, H, [t.color.accent, t.color.accent2, '#0a0a12', t.color.accent])
+
+  // cabeçalho
+  chromeText(g, 'moody', P, 156, 76)
+  g.font = disp(76)
+  sparkle(g, P + g.measureText(dt('moody')).width + 22, 102, 13, accent())
+  g.fillStyle = INK2
+  g.font = `700 30px ${num()}`
+  g.textAlign = 'right'
+  const [y0, m0, d0] = daily.date.split('-')
+  g.fillText(`${d0}.${m0}.${y0.slice(2)}`, W - P, 146)
+  g.textAlign = 'left'
+
+  g.fillStyle = t.color.accent2
+  g.font = `700 26px ${ui()}`
+  g.letterSpacing = '8px'
+  g.fillText(`INDICAÇÃO DO DIA${daily.mood ? ` · ${moodName(daily.mood).toUpperCase()}` : ''}`, P, 280)
+  g.letterSpacing = '0px'
+
+  // mede o bloco (capa + textos) para centralizá-lo entre o rótulo e o rodapé
+  const cw = 600, ch = 900
+  const m = dispMetrics(96)
+  g.font = disp(96)
+  const titleLines = wrap(g, dt(p.title), W - P * 2, 2)
+  g.font = `400 34px ${ui()}`
+  const whyLines = wrap(g, p.why, W - P * 2, 3)
+  const blockH = ch + 76 + m.px * 0.85 + (titleLines.length - 1) * m.lineH + 54 + 64 + (whyLines.length - 1) * 46 + 20
+  const areaTop = 330, areaBottom = H - 170
+  const cx = (W - cw) / 2
+  const cy = areaTop + Math.max(0, (areaBottom - areaTop - blockH) / 2)
+
+  g.save()
+  g.shadowColor = withAlpha(t.color.accent, 0.55)
+  g.shadowBlur = 90
+  g.shadowOffsetY = 30
+  rrect(g, cx, cy, cw, ch, t.radius.lg * 2)
+  g.fillStyle = '#0b0b10'
+  g.fill()
+  g.restore()
+  g.save()
+  rrect(g, cx, cy, cw, ch, t.radius.lg * 2)
+  g.clip()
+  if (cover) drawCover(g, cover, cx, cy, cw, ch)
+  else {
+    // sem capa: bloco do tema com um brilho, sem repetir o título
+    const grd = g.createLinearGradient(cx, cy, cx + cw, cy + ch)
+    grd.addColorStop(0, t.color.accent)
+    grd.addColorStop(1, '#000')
+    g.fillStyle = grd
+    g.fillRect(cx, cy, cw, ch)
+    g.fillStyle = 'rgba(255,255,255,.06)'
+    for (let yy = cy; yy < cy + ch; yy += 6) g.fillRect(cx, yy, cw, 2)
+    sparkle(g, cx + cw / 2, cy + ch * 0.45, 120, INK)
+  }
+  g.restore()
+  g.save()
+  rrect(g, cx + 1, cy + 1, cw - 2, ch - 2, t.radius.lg * 2)
+  g.strokeStyle = 'rgba(255,255,255,.22)'
+  g.lineWidth = 3
+  g.stroke()
+  g.restore()
+  // selo do tipo sobre a capa
+  g.save()
+  g.font = `800 24px ${ui()}`
+  const label = DAILY_LABEL[p.type] ?? ''
+  const lw = g.measureText(label).width + 40
+  rrect(g, cx + 24, cy + 24, lw, 48, t.radius.sm * 2)
+  g.fillStyle = t.color.accent
+  g.fill()
+  g.fillStyle = t.color.accentInk
+  g.textBaseline = 'middle'
+  g.fillText(label, cx + 44, cy + 49)
+  g.restore()
+
+  // título, autoria, porquê
+  let y = cy + ch + 76 + m.px * 0.85
+  g.font = disp(96)
+  g.fillStyle = INK
+  g.shadowColor = withAlpha(t.color.accent, 0.6)
+  g.shadowBlur = 40
+  titleLines.forEach((l, i) => g.fillText(l, P, y + i * m.lineH))
+  g.shadowBlur = 0
+  y += (titleLines.length - 1) * m.lineH + 54
+  g.fillStyle = INK2
+  g.font = `500 32px ${ui()}`
+  g.fillText(wrap(g, [p.creator, p.year].filter(Boolean).join(' · '), W - P * 2, 1)[0] ?? '', P, y)
+  y += 64
+  g.fillStyle = INK
+  g.font = `400 34px ${ui()}`
+  whyLines.forEach((l, i) => g.fillText(l, P, y + i * 46))
+
+  // rodapé
+  g.fillStyle = INK3
+  g.font = `500 24px ${ui()}`
+  if (daily.sky) {
+    g.fillStyle = t.color.accent2
+    g.font = `600 26px ${ui()}`
+    g.fillText(wrap(g, `☾ ${daily.sky}`, W - P * 2 - 260, 1)[0], P, H - 96)
+  }
+  g.fillStyle = INK3
+  g.font = `500 22px ${ui()}`
+  g.textAlign = 'right'
+  g.fillText('feito no moody ✦', W - P, H - 96)
+  g.textAlign = 'left'
+  sparkle(g, W - 130, 300, 16)
+  finish(g, W, H)
+  cover?.close()
+  return toBlob(c)
+}
+
+const MOOD_NAMES: Record<string, string> = { leve: 'leve', intenso: 'intenso', nostalgico: 'nostálgico', introspectivo: 'introspectivo', inquieto: 'inquieto', cansado: 'cansado', romantico: 'romântico', curioso: 'curioso' }
+const moodName = (m: string) => MOOD_NAMES[m] ?? m

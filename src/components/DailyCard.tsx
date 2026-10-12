@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../store'
 import { Icon } from './Icon'
+import { Sheet } from './Sheet'
+import { download, shareOrDownload, slug } from '../lib/share'
 import { useToast } from './Toast'
 import { searchCatalog, searchSource } from '../lib/catalog'
 import { loadSettings } from '../lib/settings'
@@ -19,6 +21,7 @@ export function DailyCard({ onRegister }: { onRegister: (p: Pick) => void }) {
   const [mood, setMood] = useState<MoodId | undefined>(daily?.mood)
   const [want, setWant] = useState<PickType | 'any'>(daily?.want ?? 'any')
   const [busy, setBusy] = useState(false)
+  const [sharing, setSharing] = useState(false)
   // o motor astronômico só é baixado no modo astral
   const [astro, setAstro] = useState<AstroContext | null>(null)
   useEffect(() => {
@@ -117,13 +120,53 @@ export function DailyCard({ onRegister }: { onRegister: (p: Pick) => void }) {
           </button>
         </>
       ) : (
-        <PickView daily={daily} busy={busy} onRegister={() => onRegister(daily.pick)} onAnother={() => generate([daily.pick.title, ...daily.alternates.map((a) => a.title)])} onKnown={known} onSwap={swap} />
+        <PickView daily={daily} busy={busy} onShare={() => setSharing(true)} onRegister={() => onRegister(daily.pick)} onAnother={() => generate([daily.pick.title, ...daily.alternates.map((a) => a.title)])} onKnown={known} onSwap={swap} />
       )}
+      {sharing && daily && <DailyShare daily={daily} onClose={() => setSharing(false)} />}
     </section>
   )
 }
 
-function PickView({ daily, busy, onRegister, onAnother, onKnown, onSwap }: { daily: Daily; busy: boolean; onRegister: () => void; onAnother: () => void; onKnown: () => void; onSwap: (i: number) => void }) {
+function DailyShare({ daily, onClose }: { daily: Daily; onClose: () => void }) {
+  const toast = useToast()
+  const [file, setFile] = useState<File | null>(null)
+  const [url, setUrl] = useState<string>()
+  useEffect(() => {
+    let alive = true
+    let made: string | undefined
+    import('../lib/card')
+      .then((m) => m.renderDaily(daily))
+      .then((blob) => {
+        if (!alive) return
+        const f = new File([blob], `moody-indicacao-${daily.date}-${slug(daily.pick.title)}.png`, { type: 'image/png' })
+        made = URL.createObjectURL(f)
+        setFile(f)
+        setUrl(made)
+      })
+      .catch(() => toast('não foi possível montar o card'))
+    return () => {
+      alive = false
+      if (made) URL.revokeObjectURL(made)
+    }
+  }, [daily, toast])
+  return (
+    <Sheet title="compartilhar" onClose={onClose}>
+      <div className="stack" style={{ gap: 14 }}>
+        <div style={{ display: 'grid', placeItems: 'center' }}>
+          {url ? <img src={url} alt="card da indicação" className="daily-share-img" /> : <div className="daily-share-img" style={{ display: 'grid', placeItems: 'center', background: 'var(--surface-2)' }}><span className="pending"><i /><i /><i /></span></div>}
+        </div>
+        <button className="btn primary block" disabled={!file} onClick={async () => { if (file) { const r = await shareOrDownload([file], daily.pick.title); if (r === 'downloaded') toast('imagem salva') } }}>
+          <Icon name="share" size={18} /> enviar para o instagram
+        </button>
+        <button className="btn glassy block" disabled={!file} onClick={() => { if (file) { download([file]); toast('imagem salva') } }}>
+          <Icon name="download" size={18} /> salvar no aparelho
+        </button>
+      </div>
+    </Sheet>
+  )
+}
+
+function PickView({ daily, busy, onShare, onRegister, onAnother, onKnown, onSwap }: { daily: Daily; busy: boolean; onShare: () => void; onRegister: () => void; onAnother: () => void; onKnown: () => void; onSwap: (i: number) => void }) {
   const p = daily.pick
   return (
     <div className="stack" style={{ gap: 14, marginTop: 12 }} key={p.title}>
@@ -143,6 +186,7 @@ function PickView({ daily, busy, onRegister, onAnother, onKnown, onSwap }: { dai
         <button className="btn glassy sm" disabled={busy} onClick={onAnother}>{busy ? <span className="pending"><i /><i /><i /></span> : 'outra'}</button>
         <button className="btn ghost sm" onClick={onKnown}>já conheço</button>
       </div>
+      <button className="btn glassy sm block" onClick={onShare}><Icon name="share" size={16} /> compartilhar como card</button>
       {daily.alternates.length > 0 && (
         <div>
           <div className="eyebrow" style={{ marginBottom: 6 }}>ou ainda</div>

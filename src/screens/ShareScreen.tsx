@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon'
 import { useToast } from '../components/Toast'
 import { renderRecap, type CardFormat } from '../lib/card'
 import { localReading } from '../lib/reading'
+import { download as saveFiles, shareOrDownload } from '../lib/share'
 import type { Period } from '../lib/types'
 
 export function ShareScreen({ period, back }: { period: Period; back: () => void }) {
@@ -40,26 +41,12 @@ export function ShareScreen({ period, back }: { period: Period; back: () => void
   const files = () => blobs.map((b, i) => new File([b], `moody-${slug}-${format === 'story' ? 'stories' : `carrossel-${i + 1}`}.png`, { type: 'image/png' }))
 
   async function shareNative() {
-    const f = files()
-    if (navigator.canShare?.({ files: f })) {
-      try {
-        await navigator.share({ files: f, title: period.reading?.name ?? period.title })
-      } catch {
-        /* cancelado */
-      }
-    } else download()
+    const r = await shareOrDownload(files(), period.reading?.name ?? period.title)
+    if (r === 'downloaded') toast(blobs.length > 1 ? `${blobs.length} imagens salvas` : 'imagem salva')
   }
 
   function download() {
-    files().forEach((f, i) => {
-      setTimeout(() => {
-        const a = document.createElement('a')
-        a.href = URL.createObjectURL(f)
-        a.download = f.name
-        a.click()
-        setTimeout(() => URL.revokeObjectURL(a.href), 2000)
-      }, i * 250)
-    })
+    saveFiles(files())
     toast(blobs.length > 1 ? `${blobs.length} imagens salvas` : 'imagem salva')
   }
 
