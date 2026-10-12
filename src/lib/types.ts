@@ -30,6 +30,8 @@ export interface Reading {
   summary: string
   origin: 'ai' | 'local'
   edited: boolean
+  /** céu do período (modo astral), congelado junto com a leitura */
+  sky?: { line: string; facts: string[] }
   generatedAt: number
 }
 

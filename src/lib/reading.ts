@@ -7,6 +7,8 @@ export interface ReadingInput {
   imageColors: string[]
   previous?: { title: string; reading: Reading }
   seed?: number
+  /** céu do período, no modo astral */
+  sky?: { line: string; facts: string[] }
 }
 
 /* ───────────────────────── utilidades ───────────────────────── */
@@ -120,6 +122,16 @@ export function localReading(input: ReadingInput): Reading {
     parts.push(`${entries.length} registros, puxados por ${lead.join(' e ')}.`)
     parts.push(avg >= 4 ? 'notas altas, quase nenhuma ressalva.' : avg >= 3 ? 'notas no meio do caminho: curiosidade mais do que paixão.' : 'notas baixas — um período de testar e descartar.')
   }
+  if (input.sky?.facts.length) {
+    const astroWord = input.sky.facts.some((f) => f.includes('retrógrado')) ? 'revisão' : input.sky.facts.some((f) => f.startsWith('lua nova')) ? 'recomeço' : input.sky.facts.some((f) => f.startsWith('lua cheia')) ? 'clímax' : null
+    if (astroWord && !words.has(astroWord)) {
+      const list = [...words]
+      list[list.length - 1] = astroWord
+      words.clear()
+      list.forEach((w) => words.add(w))
+    }
+    parts.push(`no céu: ${input.sky.facts.slice(0, 2).join(' e ')}.`)
+  }
   if (previous) parts.push(`vem de “${previous.reading.name}” e troca ${pick(r, previous.reading.words)} por ${[...words][0]}.`)
 
   return {
@@ -130,6 +142,7 @@ export function localReading(input: ReadingInput): Reading {
     origin: 'local',
     edited: false,
     generatedAt: Date.now(),
+    sky: input.sky,
   }
 }
 

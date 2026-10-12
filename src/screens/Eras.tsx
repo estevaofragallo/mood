@@ -50,6 +50,7 @@ export function Eras({ openPeriod }: { openPeriod: (id: string) => void }) {
                   </div>
                   <p className="serif" style={{ fontSize: 'calc(30px * var(--display-scale))', margin: '12px 0 6px' }}>{p.reading?.name ?? p.title}</p>
                   {p.reading && <p className="faint" style={{ margin: 0, fontSize: 13 }}>{p.title} · {p.reading.words.join(' · ')}</p>}
+                  {p.reading?.sky && <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--accent-2)' }}>☾ {p.reading.sky.line}</p>}
                   <div className="row between" style={{ marginTop: 14 }}>
                     {p.reading ? <Swatches colors={p.reading.palette} /> : <span className="faint" style={{ fontSize: 12 }}>sem leitura ainda</span>}
                     <span className="dot" style={{ fontSize: 14 }}>{String(n).padStart(2, '0')} reg.</span>

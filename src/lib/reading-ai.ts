@@ -26,12 +26,15 @@ Saída:
 - palette: 5 cores hex que traduzam o período; parta das cores das fotos quando houver, ajustando para funcionar sobre fundo preto.
 - summary: 1 ou 2 frases, no máximo 220 caracteres. Se houver fase anterior, descreva a mudança.
 
+Se houver "céu do período", use-o como atmosfera e textura do nome e das palavras (ex.: retrogradação como revisão, lua nova como recomeço), nunca como previsão sobre saúde, dinheiro, trabalho ou relações.
+
 Limites, obrigatórios:
 - Use apenas vocabulário estético e emocional.
 - Nunca infira nem sugira religião, posição política, orientação sexual, gênero, saúde, etnia, classe social ou tipo de personalidade, mesmo que as obras pareçam indicar.
 - Não faça diagnósticos nem julgamentos sobre a pessoa; descreva o período.`
 
-function describeInput({ period, entries, imageColors, previous }: ReadingInput): string {
+function describeInput(input: ReadingInput): string {
+  const { period, entries, imageColors, previous } = input
   const lines = entries
     .filter((e) => e.type !== 'photo')
     .map((e) => {
@@ -47,6 +50,7 @@ function describeInput({ period, entries, imageColors, previous }: ReadingInput)
     lines.length ? lines.join('\n') : '- (nenhum item de mídia)',
     `fotos: ${photos}`,
     imageColors.length ? `cores extraídas das fotos e capas: ${imageColors.join(', ')}` : '',
+    input.sky ? `céu do período: ${input.sky.facts.join('; ')}` : '',
     previous ? `\nfase anterior: "${previous.reading.name}" (${previous.title}) — palavras: ${previous.reading.words.join(', ')}` : '',
   ].join('\n')
 }
@@ -79,6 +83,7 @@ export async function aiReading(input: ReadingInput): Promise<Reading> {
       origin: 'ai',
       edited: false,
       generatedAt: Date.now(),
+      sky: input.sky,
     }
   } catch (err) {
     if (err instanceof ReadingError) throw err

@@ -24,6 +24,12 @@ const disp = (size: number) => {
   const t = currentTheme()
   return `${t.display.weight} ${Math.round(size * t.display.scale)}px '${t.fonts.display}', sans-serif`
 }
+/** tamanho efetivo e altura de linha do título no tema ativo */
+const dispMetrics = (size: number) => {
+  const t = currentTheme()
+  const px = Math.round(size * t.display.scale)
+  return { px, lineH: Math.round(px * Math.max(0.98, t.display.leading + 0.06)) }
+}
 /** caixa alta quando o tema pede */
 const dt = (s: string) => (currentTheme().display.upper ? s.toUpperCase() : s)
 const accent = () => currentTheme().color.accent
@@ -334,14 +340,16 @@ function story(ctx: Ctx): HTMLCanvasElement {
   g.fillText(`RECAP · ${KIND_META[ctx.period.kind].label.toUpperCase()} · ${ctx.period.title.toUpperCase()}`, P, 300)
   g.letterSpacing = '0px'
 
-  g.font = disp(132)
+  g.font = disp(124)
+  const sm = dispMetrics(124)
   const nameLines = wrap(g, dt(reading.name), W - P * 2, 3)
   g.fillStyle = INK
   g.shadowColor = withAlpha(reading.palette[0], 0.7)
   g.shadowBlur = 60
-  nameLines.forEach((l, i) => g.fillText(l, P, 430 + i * 128))
+  const nameTop = 300 + 30 + sm.px * 0.9 // abaixo da linha de rótulo
+  nameLines.forEach((l, i) => g.fillText(l, P, nameTop + i * sm.lineH))
   g.shadowBlur = 0
-  let y = 430 + (nameLines.length - 1) * 128 + 80
+  let y = nameTop + (nameLines.length - 1) * sm.lineH + 80
 
   g.font = `500 36px ${ui()}`
   g.fillStyle = INK2
@@ -353,6 +361,12 @@ function story(ctx: Ctx): HTMLCanvasElement {
     x += g.measureText(w).width + 34
   })
   y += 60
+  if (reading.sky?.line) {
+    g.fillStyle = currentTheme().color.accent2
+    g.font = `600 28px ${ui()}`
+    g.fillText(wrap(g, `☾ ${reading.sky.line}`, W - P * 2, 1)[0], P, y)
+    y += 50
+  }
 
   // colagem
   const photos = ctx.entries.filter((e) => e.type === 'photo' && e.imageId && ctx.images.has(e.imageId))
@@ -407,21 +421,33 @@ function carousel(ctx: Ctx): HTMLCanvasElement[] {
     g.letterSpacing = '6px'
     g.fillText(`${KIND_META[ctx.period.kind].label.toUpperCase()} · ${ctx.period.title.toUpperCase()}`, P, 420)
     g.letterSpacing = '0px'
-    g.font = disp(150)
+    const cm = dispMetrics(136)
+    g.font = disp(136)
     g.fillStyle = INK
     g.shadowColor = withAlpha(reading.palette[0], 0.7)
     g.shadowBlur = 70
     const lines = wrap(g, dt(reading.name), W - P * 2, 3)
-    lines.forEach((l, i) => g.fillText(l, P, 560 + i * 142))
+    const top = 420 + 30 + cm.px * 0.9
+    lines.forEach((l, i) => g.fillText(l, P, top + i * cm.lineH))
     g.shadowBlur = 0
-    let y = 560 + (lines.length - 1) * 142 + 90
+    let y = top + (lines.length - 1) * cm.lineH + 84
     g.font = `500 34px ${ui()}`
     g.fillStyle = INK2
-    g.fillText(reading.words.join('  ✧  '), P, y)
-    y += 70
-    g.font = `400 30px ${ui()}`
-    g.fillStyle = INK3
-    wrap(g, reading.summary, W - P * 2, 3).forEach((l, i) => g.fillText(l, P, y + i * 44))
+    g.fillText(wrap(g, reading.words.join('  ✧  '), W - P * 2, 1)[0], P, y)
+    y += 64
+    if (reading.sky?.line) {
+      g.fillStyle = currentTheme().color.accent2
+      g.font = `600 28px ${ui()}`
+      g.fillText(wrap(g, `☾ ${reading.sky.line}`, W - P * 2, 1)[0], P, y)
+      y += 54
+    }
+    // o resumo ocupa só o espaço livre acima dos números
+    const room = Math.floor((H - 300 - y) / 44) + 1
+    if (room > 0) {
+      g.font = `400 30px ${ui()}`
+      g.fillStyle = INK3
+      wrap(g, reading.summary, W - P * 2, Math.min(3, room)).forEach((l, i) => g.fillText(l, P, y + i * 44))
+    }
     const bw = (W - P * 2) / reading.palette.length
     reading.palette.forEach((col, i) => {
       g.fillStyle = col

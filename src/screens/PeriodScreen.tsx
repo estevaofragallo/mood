@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '../store'
 import { Icon, type IconName } from '../components/Icon'
 import { Cover } from '../components/Cover'
@@ -23,7 +23,7 @@ interface Props {
 }
 
 export function PeriodScreen({ period, back, share, addEntry, editEntry }: Props) {
-  const { entriesOf, periods, savePeriod, deletePeriod } = useStore()
+  const { entriesOf, periods, savePeriod, deletePeriod, profile } = useStore()
   const toast = useToast()
   const entries = entriesOf(period)
   const [filter, setFilter] = useState<EntryType | 'all'>('all')
@@ -37,6 +37,24 @@ export function PeriodScreen({ period, back, share, addEntry, editEntry }: Props
   const closed = period.status === 'closed'
   const reading = period.reading
   const hasKey = !!loadSettings().apiKey
+
+  // céu do período (modo astral): era fechada usa o céu congelado; aberta recalcula
+  const astral = profile?.mode === 'astral' && !!profile.birth?.date
+  const [liveSky, setLiveSky] = useState<{ line: string; facts: string[] } | null>(null)
+  useEffect(() => {
+    if (!astral || !profile?.birth || (closed && reading?.sky)) return setLiveSky(null)
+    let alive = true
+    import('../lib/astro')
+      .then((m) => {
+        const s = m.periodSky(period.start, period.end, m.natal(profile.birth!))
+        if (alive) setLiveSky({ line: s.line, facts: s.facts })
+      })
+      .catch(() => alive && setLiveSky(null))
+    return () => {
+      alive = false
+    }
+  }, [astral, profile, period.start, period.end, closed, reading?.sky])
+  const sky = closed && reading?.sky ? reading.sky : liveSky
 
   const counts = useMemo(() => {
     const c = new Map<EntryType, number>()
@@ -65,6 +83,7 @@ export function PeriodScreen({ period, back, share, addEntry, editEntry }: Props
         imageColors: await dominantColors(blobs),
         previous: previous?.reading ? { title: previous.title, reading: previous.reading } : undefined,
         seed: seed + 1,
+        sky: sky ?? undefined,
       }
       setSeed((s) => s + 1)
       let r: Reading
@@ -153,6 +172,20 @@ export function PeriodScreen({ period, back, share, addEntry, editEntry }: Props
           </div>
         )}
       </section>
+
+      {sky && (
+        <section className="section glass card stack" style={{ gap: 10 }}>
+          <div className="row between">
+            <span className="eyebrow" style={{ color: 'var(--accent-2)' }}>☾ céu do período</span>
+            {closed && reading?.sky && <span className="tag">congelado</span>}
+          </div>
+          <p className="serif" style={{ fontSize: 'calc(22px * var(--display-scale))', margin: 0 }}>{sky.line}</p>
+          <ul className="sky-list">
+            {sky.facts.map((f) => <li key={f}>{f}</li>)}
+          </ul>
+          <p className="note" style={{ margin: 0 }}>calculado no aparelho a partir da sua data de nascimento. entra na leitura como atmosfera, nunca como previsão.</p>
+        </section>
+      )}
 
       {/* registros */}
       <section className="section">
