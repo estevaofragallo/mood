@@ -17,7 +17,7 @@ export interface Entry {
   note?: string
   /** data do registro, AAAA-MM-DD */
   date: string
-  source?: 'manual' | 'tmdb' | 'googlebooks' | 'openlibrary' | 'musicbrainz'
+  source?: 'manual' | 'tmdb' | 'wikipedia' | 'tvmaze' | 'googlebooks' | 'openlibrary' | 'musicbrainz'
   createdAt: number
 }
 

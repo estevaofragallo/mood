@@ -1,7 +1,7 @@
 import { loadSettings } from './settings'
 
 export interface CheckResult {
-  id: 'claude' | 'tmdb' | 'google' | 'musicbrainz' | 'openlibrary'
+  id: 'claude' | 'tmdb' | 'wikipedia' | 'tvmaze' | 'google' | 'musicbrainz' | 'openlibrary'
   label: string
   status: 'ok' | 'fail' | 'skip'
   detail: string
@@ -59,7 +59,7 @@ export async function runChecks(): Promise<CheckResult[]> {
     (async (): Promise<CheckResult> => {
       const base = { id: 'tmdb' as const, label: 'TMDB (filmes e séries)' }
       const key = s.tmdbKey.trim()
-      if (!key) return { ...base, status: 'skip', detail: 'sem chave — filmes e séries entram à mão' }
+      if (!key) return { ...base, status: 'skip', detail: 'sem chave — filmes pela Wikipedia, séries pelo TVmaze' }
       try {
         const bearer = key.startsWith('eyJ')
         const url = `https://api.themoviedb.org/3/search/movie?query=aftersun&language=pt-BR${bearer ? '' : `&api_key=${encodeURIComponent(key)}`}`
@@ -76,6 +76,44 @@ export async function runChecks(): Promise<CheckResult[]> {
             if (!img.ok) return `achou “${first.title}”, mas a capa falhou (${img.status})`
           }
           return `achou “${first.title}” com capa`
+        })
+        return { ...base, status: 'ok', ...r }
+      } catch (e) {
+        return { ...base, status: 'fail', detail: why(e) }
+      }
+    })(),
+  )
+
+  checks.push(
+    (async (): Promise<CheckResult> => {
+      const base = { id: 'wikipedia' as const, label: 'Wikipedia (filmes e séries, sem chave)' }
+      try {
+        const r = await timed(async () => {
+          const hits = await (await import('./catalog')).searchCatalog('film', 'Aftersun', withTimeout(15_000))
+          const h = hits[0]
+          if (!h) return 'respondeu, mas sem resultados'
+          const cover = h.coverUrls[0] ? await fetch(h.coverUrls[0], { signal: withTimeout(15_000) }).then((x) => x.ok).catch(() => false) : false
+          return `achou “${h.title}”${cover ? ' com pôster' : ', sem pôster'}`
+        })
+        return { ...base, status: 'ok', ...r }
+      } catch (e) {
+        return { ...base, status: 'fail', detail: why(e) }
+      }
+    })(),
+  )
+
+  checks.push(
+    (async (): Promise<CheckResult> => {
+      const base = { id: 'tvmaze' as const, label: 'TVmaze (séries, sem chave)' }
+      try {
+        const r = await timed(async () => {
+          const res = await fetch('https://api.tvmaze.com/search/shows?q=fleabag', { signal: withTimeout(15_000) })
+          if (!res.ok) throw new Error(`erro ${res.status}`)
+          const j = (await res.json()) as { show: { name: string; image?: { medium?: string } | null } }[]
+          const s = j[0]?.show
+          if (!s) return 'respondeu, mas sem resultados'
+          const cover = s.image?.medium ? await fetch(s.image.medium, { signal: withTimeout(15_000) }).then((x) => x.ok).catch(() => false) : false
+          return `achou “${s.name}”${cover ? ' com pôster' : ', sem pôster'}`
         })
         return { ...base, status: 'ok', ...r }
       } catch (e) {
