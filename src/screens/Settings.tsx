@@ -125,20 +125,20 @@ export function Settings({ editProfile }: { editProfile: (at: 'book' | 'mode') =
       <section className="section glass card stack" style={{ gap: 14 }}>
         <div className="row between">
           <b>catálogos e capas</b>
-          <span className="tag">{s.tmdbKey ? '✦ TMDB conectado' : 'TMDB desligado'}</span>
+          <span className="tag">{s.tmdbKey ? '✦ TMDB conectado' : 'sem chave · Wikipedia e TVmaze'}</span>
         </div>
         <p className="note" style={{ margin: 0 }}>
-          filmes e séries: TMDB, em português, com pôster e direção. livros: Google Books, com Open Library de reserva. álbuns: MusicBrainz. a busca envia só o texto digitado; as capas escolhidas são baixadas e guardadas no aparelho.
+          filmes: Wikipedia, sem chave (ou TMDB, se você colar a chave). séries: TVmaze, com a Wikipedia de reserva (ou TMDB). livros: Google Books, com Open Library de reserva. álbuns: MusicBrainz. a busca envia só o texto digitado; as capas escolhidas são baixadas e guardadas no aparelho.
         </p>
         <label className="field">
-          <span>chave do TMDB (v3 ou token de leitura v4)</span>
+          <span>chave do TMDB (opcional · v3 ou token v4)</span>
           <input className="input" type="password" autoComplete="off" placeholder="gratuita em themoviedb.org → ajustes → API" value={s.tmdbKey} onChange={(e) => update({ tmdbKey: e.target.value.trim() })} />
         </label>
         <label className="field">
           <span>chave do Google Books (opcional)</span>
           <input className="input" type="password" autoComplete="off" placeholder="sem chave, vale a cota anônima do Google" value={s.googleKey} onChange={(e) => update({ googleKey: e.target.value.trim() })} />
         </label>
-        <p className="note" style={{ margin: 0 }}>This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+        <p className="note" style={{ margin: 0 }}>This product uses the TMDB API but is not endorsed or certified by TMDB. dados de séries: TVmaze (CC BY-SA). textos e cartazes: Wikipedia.</p>
       </section>
 
       <section className="section glass card stack" style={{ gap: 12 }}>

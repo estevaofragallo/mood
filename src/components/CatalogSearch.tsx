@@ -59,7 +59,7 @@ export function CatalogSearch({ type, onPick, onManual, placeholder }: Props) {
         <Icon name="search" size={18} />
         <input
           className="input"
-          placeholder={placeholder ?? (source ? `buscar no ${source}` : 'digite o título')}
+          placeholder={placeholder ?? (source ? `buscar título · ${source}` : 'digite o título')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && !source && q && onManual && manual()}

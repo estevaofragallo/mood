@@ -1,7 +1,7 @@
 import type { EntryType } from './types'
 import { loadSettings } from './settings'
 
-export type CatalogSource = 'tmdb' | 'googlebooks' | 'openlibrary' | 'musicbrainz'
+export type CatalogSource = 'tmdb' | 'wikipedia' | 'tvmaze' | 'googlebooks' | 'openlibrary' | 'musicbrainz'
 
 export interface CatalogHit {
   key: string
@@ -17,6 +17,8 @@ export interface CatalogHit {
 
 export const SOURCE_LABEL: Record<CatalogSource, string> = {
   tmdb: 'TMDB',
+  wikipedia: 'Wikipedia',
+  tvmaze: 'TVmaze',
   googlebooks: 'Google Books',
   openlibrary: 'Open Library',
   musicbrainz: 'MusicBrainz',
@@ -26,7 +28,8 @@ export class CatalogError extends Error {}
 
 /** Nome da fonte de busca por tipo, ou null quando não há busca disponível. */
 export function searchSource(type: EntryType): string | null {
-  if (type === 'film' || type === 'series') return loadSettings().tmdbKey ? 'TMDB' : null
+  if (type === 'film') return loadSettings().tmdbKey ? 'TMDB' : 'Wikipedia'
+  if (type === 'series') return loadSettings().tmdbKey ? 'TMDB' : 'TVmaze'
   if (type === 'book') return 'Google Books'
   if (type === 'album') return 'MusicBrainz'
   return null
@@ -96,6 +99,96 @@ export async function enrichHit(hit: CatalogHit): Promise<CatalogHit> {
   } catch {
     return hit
   }
+}
+
+/* ───────────── sem chave: Wikipedia (filmes e séries) e TVmaze (séries) ───────────── */
+
+interface WikiPage {
+  pageid: number
+  title: string
+  index?: number
+  description?: string
+  thumbnail?: { source: string }
+  langlinks?: { lang: string; title?: string; '*'?: string }[]
+}
+
+const WIKI_KIND: Record<'film' | 'series', RegExp> = {
+  film: /\b(filme|longa-metragem|curta-metragem|documentário|animação)\b/i,
+  series: /\b(série|telessérie|minissérie|seriado|programa de televisão|sitcom|anime)\b/i,
+}
+
+async function wikiApi(lang: 'pt' | 'en', params: Record<string, string>, signal: AbortSignal) {
+  const qs = new URLSearchParams({ action: 'query', format: 'json', formatversion: '1', origin: '*', ...params })
+  const res = await fetch(`https://${lang}.wikipedia.org/w/api.php?${qs}`, { signal })
+  if (!res.ok) throw new CatalogError('Wikipedia indisponível')
+  return (await res.json()) as { query?: { pages?: Record<string, WikiPage> } }
+}
+
+/**
+ * Busca na Wikipédia em português (título e descrição curta) e completa o pôster pela versão
+ * em inglês, que hospeda cartazes; a portuguesa não aceita imagens com direitos reservados.
+ */
+async function wikipedia(kind: 'film' | 'series', q: string, signal: AbortSignal): Promise<CatalogHit[]> {
+  const json = await wikiApi('pt', {
+    generator: 'search',
+    gsrsearch: `${q} ${kind === 'film' ? 'filme' : 'série'}`,
+    gsrlimit: '10',
+    prop: 'description|pageimages|langlinks',
+    piprop: 'thumbnail',
+    pithumbsize: '500',
+    lllang: 'en',
+  }, signal)
+  const pages = Object.values(json.query?.pages ?? {})
+    .filter((p) => WIKI_KIND[kind].test(p.description ?? ''))
+    .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
+    .slice(0, 8)
+
+  // pôsteres na Wikipédia em inglês, numa única chamada
+  const enTitles = pages.map((p) => p.langlinks?.[0]?.['*'] ?? p.langlinks?.[0]?.title).filter((t): t is string => !!t)
+  const enThumbs = new Map<string, string>()
+  if (enTitles.length) {
+    try {
+      const en = await wikiApi('en', { titles: enTitles.join('|'), prop: 'pageimages', piprop: 'thumbnail', pithumbsize: '500', redirects: '1' }, signal)
+      for (const p of Object.values(en.query?.pages ?? {})) if (p.thumbnail) enThumbs.set(p.title, p.thumbnail.source)
+    } catch {
+      /* sem pôster: segue com o que houver */
+    }
+  }
+
+  return pages.map((p) => {
+    const desc = p.description ?? ''
+    const year = desc.match(/\b(18|19|20)\d{2}\b/)?.[0]
+    const by = desc.match(/(?:dirigid[oa]|criad[oa]|realizad[oa]) por (.+)$/i)?.[1]
+    const enTitle = p.langlinks?.[0]?.['*'] ?? p.langlinks?.[0]?.title
+    const title = p.title.replace(/\s*\((filme|série|telessérie|minissérie)[^)]*\)\s*$/i, '')
+    const coverUrls = [enTitle && enThumbs.get(enTitle), p.thumbnail?.source].filter((u): u is string => !!u)
+    return { key: `wiki-${p.pageid}`, title, subtitle: by, year, coverUrls, source: 'wikipedia' as const }
+  })
+}
+
+async function tvmaze(q: string, signal: AbortSignal): Promise<CatalogHit[]> {
+  const res = await fetch(`https://api.tvmaze.com/search/shows?q=${encodeURIComponent(q)}`, { signal })
+  if (!res.ok) throw new CatalogError('TVmaze indisponível')
+  const json = (await res.json()) as { show: { id: number; name: string; premiered?: string | null; image?: { medium?: string; original?: string } | null; network?: { name: string } | null; webChannel?: { name: string } | null } }[]
+  return json.slice(0, 8).map(({ show }) => ({
+    key: `tvmaze-${show.id}`,
+    title: show.name,
+    subtitle: show.network?.name ?? show.webChannel?.name ?? undefined,
+    year: show.premiered?.slice(0, 4),
+    coverUrls: [show.image?.original, show.image?.medium].filter((u): u is string => !!u),
+    source: 'tvmaze' as const,
+  }))
+}
+
+/** séries sem chave: TVmaze primeiro (pôsteres melhores); se não achar, Wikipedia */
+async function seriesFree(q: string, signal: AbortSignal): Promise<CatalogHit[]> {
+  try {
+    const hits = await tvmaze(q, signal)
+    if (hits.length) return hits
+  } catch (e) {
+    if (signal.aborted) throw e
+  }
+  return wikipedia('series', q, signal)
 }
 
 /* ───────────── livros: Google Books, com Open Library de reserva ───────────── */
@@ -189,9 +282,9 @@ async function musicBrainz(q: string, signal: AbortSignal): Promise<CatalogHit[]
 export function searchCatalog(type: EntryType, q: string, signal: AbortSignal): Promise<CatalogHit[]> {
   switch (type) {
     case 'film':
-      return tmdb('movie', q, signal)
+      return loadSettings().tmdbKey ? tmdb('movie', q, signal) : wikipedia('film', q, signal)
     case 'series':
-      return tmdb('tv', q, signal)
+      return loadSettings().tmdbKey ? tmdb('tv', q, signal) : seriesFree(q, signal)
     case 'book':
       return books(q, signal)
     case 'album':
